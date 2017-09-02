@@ -167,9 +167,9 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _utils = __webpack_require__(3);
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+__webpack_require__(4);
 
-// import * as loaderStyles from './JS360.scss';
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var Canvas = exports.Canvas = function () {
     function Canvas(_ref) {
@@ -284,11 +284,9 @@ var Canvas = exports.Canvas = function () {
             var container = this.props.container;
 
             container.classList.add('is-pending');
-            // container.classList.add(loaderStyles['is-pending']);
 
             var loader = document.createElement('div');
             loader.classList.add('loader');
-            // loader.classList.add(loaderStyles.loader);
             container.append(loader);
         }
     }, {
@@ -297,7 +295,6 @@ var Canvas = exports.Canvas = function () {
             var container = this.props.container;
 
             container.classList.remove('is-pending');
-            // container.classList.remove(loaderStyles['is-pending']);
             document.querySelector('.loader').remove();
         }
     }]);
@@ -409,6 +406,12 @@ var httpGet = exports.httpGet = function httpGet(url) {
         xhr.send();
     });
 };
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
 
 /***/ })
 /******/ ]);

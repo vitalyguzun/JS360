@@ -1,5 +1,5 @@
 import { getXFn, httpGet } from './utils';
-// import * as loaderStyles from './JS360.scss';
+import './JS360.scss';
 
 export class Canvas {
     constructor({ elem, baseUrl, retinaPrefix }) {
@@ -93,18 +93,15 @@ export class Canvas {
     addLoader() {
         const { container } = this.props;
         container.classList.add('is-pending');
-        // container.classList.add(loaderStyles['is-pending']);
 
         const loader = document.createElement('div');
         loader.classList.add('loader');
-        // loader.classList.add(loaderStyles.loader);
         container.append(loader);
     }
 
     removeLoader() {
         const { container } = this.props;
         container.classList.remove('is-pending');
-        // container.classList.remove(loaderStyles['is-pending']);
         document.querySelector('.loader').remove();
     }
 

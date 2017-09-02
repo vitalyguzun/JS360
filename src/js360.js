@@ -1,6 +1,6 @@
 import { Canvas } from './Canvas';
 
-export class js360 {
+export class Js360 {
     constructor(options) {
         this.props = { ...options };
         this.canvases = [];
