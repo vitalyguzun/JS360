@@ -1,5 +1,10 @@
 import { Canvas } from './Canvas';
 
+// option = {
+//     target, // 'selector', document.querySelectorAll('selector'), document.querySelector('selector')
+//     baseUrl // http://your_api....
+// }
+
 export class Js360 {
     constructor(options) {
         this.props = { ...options };
@@ -11,9 +16,18 @@ export class Js360 {
     }
 
     render() {
-        const js360 = document.querySelectorAll('.js360');
+        const { target } = this.props;
+        let targets = [];
 
-        js360.forEach((elem) => {
+        if (typeof target === 'string') {
+            targets = document.querySelectorAll(target);
+        } else if (typeof target === 'object' && target.length) {
+            targets = target;
+        } else if (typeof target === 'object' && !target.length) {
+            targets = [target];
+        }
+
+        targets.forEach((elem) => {
             const { url, retinaPrefix } = elem.dataset;
             const { baseUrl } = this.props;
 
