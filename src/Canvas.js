@@ -18,6 +18,8 @@ export class Canvas {
         this.isMoved = false;
         this.delta = null;
         this.step = null;
+        this.interval = null;
+
         this.images = [];
 
         this.changeImage = this.getChangeImageFn(this.props);
@@ -74,7 +76,8 @@ export class Canvas {
         const { baseUrl, url, width, retinaPrefix } = this.props;
         const { length } = this.images;
 
-        if (url && !length) {
+        if (url && !this.interval) {
+            this.interval = 1;
             const path = [baseUrl, retinaPrefix, url].filter(path => path).join('/');
 
             this.addLoader();

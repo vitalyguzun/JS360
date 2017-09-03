@@ -106,7 +106,7 @@ Object.keys(_js).forEach(function (key) {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.js360 = undefined;
+exports.Js360 = undefined;
 
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
@@ -116,9 +116,9 @@ var _Canvas = __webpack_require__(2);
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var js360 = exports.js360 = function () {
-    function js360(options) {
-        _classCallCheck(this, js360);
+var Js360 = exports.Js360 = function () {
+    function Js360(options) {
+        _classCallCheck(this, Js360);
 
         this.props = _extends({}, options);
         this.canvases = [];
@@ -128,7 +128,7 @@ var js360 = exports.js360 = function () {
         }
     }
 
-    _createClass(js360, [{
+    _createClass(Js360, [{
         key: 'render',
         value: function render() {
             var _this = this;
@@ -148,7 +148,7 @@ var js360 = exports.js360 = function () {
         }
     }]);
 
-    return js360;
+    return Js360;
 }();
 
 /***/ }),
@@ -196,6 +196,8 @@ var Canvas = exports.Canvas = function () {
         this.isMoved = false;
         this.delta = null;
         this.step = null;
+        this.interval = null;
+
         this.images = [];
 
         this.changeImage = this.getChangeImageFn(this.props);
@@ -314,7 +316,8 @@ var _initialiseProps = function _initialiseProps() {
         var length = _this2.images.length;
 
 
-        if (url && !length) {
+        if (url && !_this2.interval) {
+            _this2.interval = 1;
             var path = [baseUrl, retinaPrefix, url].filter(function (path) {
                 return path;
             }).join('/');
