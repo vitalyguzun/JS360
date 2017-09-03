@@ -29,10 +29,10 @@ export class Js360 {
 
         targets.forEach((elem) => {
             const { url, retinaPrefix } = elem.dataset;
-            const { baseUrl } = this.props;
+            const { target, ...rest } = this.props;
 
             elem.classList.add('js-360-container');
-            this.canvases[url] = new Canvas({ elem, baseUrl, retinaPrefix });
+            this.canvases[url] = new Canvas({ elem, retinaPrefix, ...rest });
         });
     }
 }

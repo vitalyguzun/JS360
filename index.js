@@ -116,6 +116,8 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _Canvas = __webpack_require__(2);
 
+function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 // option = {
@@ -156,11 +158,13 @@ var Js360 = exports.Js360 = function () {
                 var _elem$dataset = elem.dataset,
                     url = _elem$dataset.url,
                     retinaPrefix = _elem$dataset.retinaPrefix;
-                var baseUrl = _this.props.baseUrl;
 
+                var _props = _this.props,
+                    target = _props.target,
+                    rest = _objectWithoutProperties(_props, ['target']);
 
                 elem.classList.add('js-360-container');
-                _this.canvases[url] = new _Canvas.Canvas({ elem: elem, baseUrl: baseUrl, retinaPrefix: retinaPrefix });
+                _this.canvases[url] = new _Canvas.Canvas(_extends({ elem: elem, retinaPrefix: retinaPrefix }, rest));
             });
         }
     }]);
@@ -180,34 +184,42 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.Canvas = undefined;
 
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _utils = __webpack_require__(3);
 
 __webpack_require__(4);
 
+function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var LoadEvents = ['mousemove'];
+var RotateEvents = ['mousedown'];
 
 var Canvas = exports.Canvas = function () {
     function Canvas(_ref) {
         var elem = _ref.elem,
-            baseUrl = _ref.baseUrl,
-            retinaPrefix = _ref.retinaPrefix;
+            retinaPrefix = _ref.retinaPrefix,
+            rest = _objectWithoutProperties(_ref, ['elem', 'retinaPrefix']);
 
         _classCallCheck(this, Canvas);
 
         _initialiseProps.call(this);
 
-        this.props = {
-            baseUrl: baseUrl,
+        this.props = _extends({
             retinaPrefix: window.devicePixelRatio === 2 ? retinaPrefix : '',
             container: elem,
             canvas: document.createElement('canvas'),
             url: elem.dataset.url,
             width: elem.clientWidth || 320,
             height: elem.clientHeight || 180,
-            preview: elem.dataset.preview
-        };
+            preview: elem.dataset.preview,
+            loadEvents: rest.loadEvents || LoadEvents,
+            rotateEvents: rest.rotateEvents || RotateEvents
+        }, rest);
 
         this.index = 0;
         this.isMoved = false;
@@ -272,30 +284,47 @@ var Canvas = exports.Canvas = function () {
         value: function addListeners() {
             var _this = this;
 
-            var container = this.props.container;
+            var _props4 = this.props,
+                container = _props4.container,
+                loadEvents = _props4.loadEvents,
+                rotateEvents = _props4.rotateEvents;
 
 
-            container.addEventListener('mousedown', function (_ref2) {
-                var clientX = _ref2.clientX;
+            if (loadEvents.includes('mousemove')) {
+                loadEvents.push('touchmove');
+            }
 
-                _this.isMoved = true;
-                _this.delta = _this.getX(clientX) - _this.index * _this.step;
+            if (rotateEvents.includes('mousedown')) {
+                rotateEvents.push('touchstart');
+            }
+
+            rotateEvents.forEach(function (eventName) {
+                return container.addEventListener(eventName, function (_ref2) {
+                    var clientX = _ref2.clientX,
+                        changedTouches = _ref2.changedTouches,
+                        type = _ref2.type;
+
+                    if (type === 'mousedown') {
+                        _this.delta = _this.getX(clientX) - _this.index * _this.step;
+                    } else if (type === 'touchstart') {
+                        _this.delta = _this.getX(changedTouches[0].clientX) - _this.index * _this.step;
+                    }
+
+                    _this.isMoved = true;
+                });
             });
-            container.addEventListener('touchstart', function (_ref3) {
-                var changedTouches = _ref3.changedTouches;
-
-                _this.isMoved = true;
-                _this.delta = _this.getX(changedTouches[0].clientX) - _this.index * _this.step;
+            loadEvents.forEach(function (event) {
+                return container.addEventListener(event, _this.getContent);
             });
 
+            container.addEventListener('mousemove', this.changeImage);
+            container.addEventListener('touchmove', this.changeImage);
             container.addEventListener('mouseup', function () {
                 return _this.isMoved = null;
             });
             container.addEventListener('touchend', function () {
                 return _this.isMoved = null;
             });
-            container.addEventListener('mousemove', this.startCycle);
-            container.addEventListener('touchmove', this.startCycle);
         }
     }, {
         key: 'addLoader',
@@ -324,12 +353,12 @@ var Canvas = exports.Canvas = function () {
 var _initialiseProps = function _initialiseProps() {
     var _this2 = this;
 
-    this.startCycle = function (event) {
-        var _props4 = _this2.props,
-            baseUrl = _props4.baseUrl,
-            url = _props4.url,
-            width = _props4.width,
-            retinaPrefix = _props4.retinaPrefix;
+    this.getContent = function (event) {
+        var _props5 = _this2.props,
+            baseUrl = _props5.baseUrl,
+            url = _props5.url,
+            width = _props5.width,
+            retinaPrefix = _props5.retinaPrefix;
         var length = _this2.images.length;
 
 
@@ -346,21 +375,22 @@ var _initialiseProps = function _initialiseProps() {
                 _this2.removeLoader();
             });
         }
-
-        if (_this2.isMoved && length) {
-            _this2.changeImage(event);
-        }
     };
 
-    this.getChangeImageFn = function (_ref4) {
-        var container = _ref4.container,
-            canvas = _ref4.canvas;
+    this.getChangeImageFn = function (_ref3) {
+        var container = _ref3.container,
+            canvas = _ref3.canvas,
+            rotateEvents = _ref3.rotateEvents;
 
         var width = container.clientWidth || 320;
         var height = container.clientHeight || 180;
         var context = canvas.getContext('2d');
 
         return function (event) {
+            if ((rotateEvents.includes('mousedown') || rotateEvents.includes('touchstart')) && !_this2.isMoved) {
+                return;
+            }
+
             var clientX = null;
             if (event.type === 'touchmove') {
                 clientX = _this2.getX(event.changedTouches[0].clientX);
