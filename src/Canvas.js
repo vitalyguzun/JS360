@@ -1,5 +1,5 @@
 import { getXFn, httpGet } from './utils';
-import './JS360.scss';
+import './js360.scss';
 
 const LoadEvents = ['mousemove'];
 const RotateEvents = ['mousedown'];
@@ -11,6 +11,7 @@ export class Canvas {
             container: elem,
             canvas: document.createElement('canvas'),
             url: elem.dataset.url,
+            baseUrl: elem.dataset.baseUrl,
             width: elem.clientWidth || 320,
             height: elem.clientHeight || 180,
             preview: elem.dataset.preview,
@@ -89,7 +90,6 @@ export class Canvas {
 
     getContent = (event) => {
         const { baseUrl, url, width, retinaPrefix } = this.props;
-        const { length } = this.images;
 
         if (url && !this.interval) {
             this.interval = 1;

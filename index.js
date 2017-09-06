@@ -106,7 +106,7 @@ Object.keys(_js).forEach(function (key) {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.Js360 = undefined;
+exports.JS360 = undefined;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
@@ -120,24 +120,15 @@ function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in ob
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-// option = {
-//     target, // 'selector', document.querySelectorAll('selector'), document.querySelector('selector')
-//     baseUrl // http://your_api....
-// }
-
-var Js360 = exports.Js360 = function () {
-    function Js360(options) {
-        _classCallCheck(this, Js360);
+var JS360 = exports.JS360 = function () {
+    function JS360(options) {
+        _classCallCheck(this, JS360);
 
         this.props = _extends({}, options);
         this.canvases = [];
-
-        if (!this.props.baseUrl) {
-            console.warn('Not provided "baseUrl" property in constructor. It needed to get images from server. Please, provide it something like this: new js360({ baseUrl: "...you_api..." })');
-        }
     }
 
-    _createClass(Js360, [{
+    _createClass(JS360, [{
         key: 'render',
         value: function render() {
             var _this = this;
@@ -169,7 +160,7 @@ var Js360 = exports.Js360 = function () {
         }
     }]);
 
-    return Js360;
+    return JS360;
 }();
 
 /***/ }),
@@ -214,6 +205,7 @@ var Canvas = exports.Canvas = function () {
             container: elem,
             canvas: document.createElement('canvas'),
             url: elem.dataset.url,
+            baseUrl: elem.dataset.baseUrl,
             width: elem.clientWidth || 320,
             height: elem.clientHeight || 180,
             preview: elem.dataset.preview,
@@ -359,7 +351,6 @@ var _initialiseProps = function _initialiseProps() {
             url = _props5.url,
             width = _props5.width,
             retinaPrefix = _props5.retinaPrefix;
-        var length = _this2.images.length;
 
 
         if (url && !_this2.interval) {

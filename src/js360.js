@@ -1,18 +1,9 @@
 import { Canvas } from './Canvas';
 
-// option = {
-//     target, // 'selector', document.querySelectorAll('selector'), document.querySelector('selector')
-//     baseUrl // http://your_api....
-// }
-
-export class Js360 {
+export class JS360 {
     constructor(options) {
         this.props = { ...options };
         this.canvases = [];
-
-        if (!this.props.baseUrl) {
-            console.warn('Not provided "baseUrl" property in constructor. It needed to get images from server. Please, provide it something like this: new js360({ baseUrl: "...you_api..." })');
-        }
     }
 
     render() {
