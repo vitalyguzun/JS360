@@ -1,22 +1,24 @@
 import { getXFn, httpGet } from './utils';
 import './js360.scss';
 
-const LoadEvents = ['mousemove'];
-const RotateEvents = ['mousedown'];
+const LOAD_EVENTS = ['mousemove'];
+const ROTATE_EVENTS = ['mousedown'];
 
 export class Canvas {
-    constructor({ elem, retinaPrefix, ...rest }) {
+    constructor({ elem , retinaPrefix, ...rest }) {
+        const { dataset: { baseUrl, url, loadEvents = '[]', rotateEvents = '[]' }} = elem;
+
         this.props = {
             retinaPrefix: window.devicePixelRatio === 2 ? retinaPrefix : '',
             container: elem,
             canvas: document.createElement('canvas'),
-            url: elem.dataset.url,
-            baseUrl: elem.dataset.baseUrl,
             width: elem.clientWidth || 320,
             height: elem.clientHeight || 180,
             preview: elem.dataset.preview,
-            loadEvents: rest.loadEvents || LoadEvents,
-            rotateEvents: rest.rotateEvents || RotateEvents,
+            loadEvents: rest.loadEvents || JSON.parse(loadEvents).length ? JSON.parse(loadEvents) : LOAD_EVENTS,
+            rotateEvents: rest.rotateEvents || JSON.parse(rotateEvents).length ? JSON.parse(rotateEvents) : ROTATE_EVENTS,
+            url,
+            baseUrl,
             ...rest
         };
 
@@ -62,14 +64,6 @@ export class Canvas {
 
     addListeners() {
         const { container, loadEvents, rotateEvents } = this.props;
-
-        if (loadEvents.includes('mousemove')) {
-            loadEvents.push('touchmove');
-        }
-
-        if (rotateEvents.includes('mousedown')) {
-            rotateEvents.push('touchstart');
-        }
 
         rotateEvents.forEach((eventName) => container.addEventListener(eventName, ({ clientX, changedTouches, type }) => {
             if (type === 'mousedown') {

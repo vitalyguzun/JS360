@@ -187,8 +187,8 @@ function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in ob
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var LoadEvents = ['mousemove'];
-var RotateEvents = ['mousedown'];
+var LOAD_EVENTS = ['mousemove'];
+var ROTATE_EVENTS = ['mousedown'];
 
 var Canvas = exports.Canvas = function () {
     function Canvas(_ref) {
@@ -200,17 +200,26 @@ var Canvas = exports.Canvas = function () {
 
         _initialiseProps.call(this);
 
+        var _elem$dataset = elem.dataset,
+            baseUrl = _elem$dataset.baseUrl,
+            url = _elem$dataset.url,
+            _elem$dataset$loadEve = _elem$dataset.loadEvents,
+            loadEvents = _elem$dataset$loadEve === undefined ? '[]' : _elem$dataset$loadEve,
+            _elem$dataset$rotateE = _elem$dataset.rotateEvents,
+            rotateEvents = _elem$dataset$rotateE === undefined ? '[]' : _elem$dataset$rotateE;
+
+
         this.props = _extends({
             retinaPrefix: window.devicePixelRatio === 2 ? retinaPrefix : '',
             container: elem,
             canvas: document.createElement('canvas'),
-            url: elem.dataset.url,
-            baseUrl: elem.dataset.baseUrl,
             width: elem.clientWidth || 320,
             height: elem.clientHeight || 180,
             preview: elem.dataset.preview,
-            loadEvents: rest.loadEvents || LoadEvents,
-            rotateEvents: rest.rotateEvents || RotateEvents
+            loadEvents: rest.loadEvents || JSON.parse(loadEvents).length ? JSON.parse(loadEvents) : LOAD_EVENTS,
+            rotateEvents: rest.rotateEvents || JSON.parse(rotateEvents).length ? JSON.parse(rotateEvents) : ROTATE_EVENTS,
+            url: url,
+            baseUrl: baseUrl
         }, rest);
 
         this.index = 0;
@@ -281,14 +290,6 @@ var Canvas = exports.Canvas = function () {
                 loadEvents = _props4.loadEvents,
                 rotateEvents = _props4.rotateEvents;
 
-
-            if (loadEvents.includes('mousemove')) {
-                loadEvents.push('touchmove');
-            }
-
-            if (rotateEvents.includes('mousedown')) {
-                rotateEvents.push('touchstart');
-            }
 
             rotateEvents.forEach(function (eventName) {
                 return container.addEventListener(eventName, function (_ref2) {
