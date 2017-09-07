@@ -194,15 +194,14 @@ var Canvas = exports.Canvas = function () {
     function Canvas(_ref) {
         var elem = _ref.elem,
             retinaPrefix = _ref.retinaPrefix,
-            rest = _objectWithoutProperties(_ref, ['elem', 'retinaPrefix']);
+            speed = _ref.speed,
+            rest = _objectWithoutProperties(_ref, ['elem', 'retinaPrefix', 'speed']);
 
         _classCallCheck(this, Canvas);
 
         _initialiseProps.call(this);
 
         var _elem$dataset = elem.dataset,
-            baseUrl = _elem$dataset.baseUrl,
-            url = _elem$dataset.url,
             _elem$dataset$loadEve = _elem$dataset.loadEvents,
             loadEvents = _elem$dataset$loadEve === undefined ? '[]' : _elem$dataset$loadEve,
             _elem$dataset$rotateE = _elem$dataset.rotateEvents,
@@ -216,10 +215,11 @@ var Canvas = exports.Canvas = function () {
             width: elem.clientWidth || 320,
             height: elem.clientHeight || 180,
             preview: elem.dataset.preview,
-            loadEvents: rest.loadEvents || JSON.parse(loadEvents).length ? JSON.parse(loadEvents) : LOAD_EVENTS,
-            rotateEvents: rest.rotateEvents || JSON.parse(rotateEvents).length ? JSON.parse(rotateEvents) : ROTATE_EVENTS,
-            url: url,
-            baseUrl: baseUrl
+            loadEvents: JSON.parse(loadEvents).length ? JSON.parse(loadEvents) : LOAD_EVENTS,
+            rotateEvents: JSON.parse(rotateEvents).length ? JSON.parse(rotateEvents) : ROTATE_EVENTS,
+            url: elem.dataset.url,
+            baseUrl: elem.dataset.baseUrl,
+            speed: Math.floor((elem.dataset.speed || speed || 1) * 100) / 100
         }, rest);
 
         this.index = 0;
@@ -372,7 +372,8 @@ var _initialiseProps = function _initialiseProps() {
     this.getChangeImageFn = function (_ref3) {
         var container = _ref3.container,
             canvas = _ref3.canvas,
-            rotateEvents = _ref3.rotateEvents;
+            rotateEvents = _ref3.rotateEvents,
+            speed = _ref3.speed;
 
         var width = container.clientWidth || 320;
         var height = container.clientHeight || 180;
@@ -390,7 +391,7 @@ var _initialiseProps = function _initialiseProps() {
                 clientX = _this2.getX(event.clientX);
             }
 
-            _this2.index = Math.round((clientX - _this2.delta) / _this2.step);
+            _this2.index = Math.round((clientX - _this2.delta) / (_this2.step / speed));
 
             if (_this2.index >= _this2.images.length) {
                 _this2.index = 0;

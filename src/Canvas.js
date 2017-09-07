@@ -5,8 +5,8 @@ const LOAD_EVENTS = ['mousemove'];
 const ROTATE_EVENTS = ['mousedown'];
 
 export class Canvas {
-    constructor({ elem , retinaPrefix, ...rest }) {
-        const { dataset: { baseUrl, url, loadEvents = '[]', rotateEvents = '[]' }} = elem;
+    constructor({ elem , retinaPrefix, speed, ...rest }) {
+        const { dataset: { loadEvents = '[]', rotateEvents = '[]' }} = elem;
 
         this.props = {
             retinaPrefix: window.devicePixelRatio === 2 ? retinaPrefix : '',
@@ -15,10 +15,11 @@ export class Canvas {
             width: elem.clientWidth || 320,
             height: elem.clientHeight || 180,
             preview: elem.dataset.preview,
-            loadEvents: rest.loadEvents || JSON.parse(loadEvents).length ? JSON.parse(loadEvents) : LOAD_EVENTS,
-            rotateEvents: rest.rotateEvents || JSON.parse(rotateEvents).length ? JSON.parse(rotateEvents) : ROTATE_EVENTS,
-            url,
-            baseUrl,
+            loadEvents: JSON.parse(loadEvents).length ? JSON.parse(loadEvents) : LOAD_EVENTS,
+            rotateEvents: JSON.parse(rotateEvents).length ? JSON.parse(rotateEvents) : ROTATE_EVENTS,
+            url: elem.dataset.url,
+            baseUrl: elem.dataset.baseUrl,
+            speed: (Math.floor((elem.dataset.speed || speed || 1) * 100) / 100),
             ...rest
         };
 
@@ -113,7 +114,7 @@ export class Canvas {
         document.querySelector('.loader').remove();
     }
 
-    getChangeImageFn = ({ container, canvas, rotateEvents }) => {
+    getChangeImageFn = ({ container, canvas, rotateEvents, speed }) => {
         const width = container.clientWidth || 320;
         const height = container.clientHeight || 180;
         const context = canvas.getContext('2d');
@@ -130,7 +131,7 @@ export class Canvas {
                 clientX = this.getX(event.clientX);
             }
 
-            this.index = Math.round((clientX - this.delta) / this.step);
+            this.index = Math.round((clientX - this.delta) / (this.step / speed));
 
             if (this.index >= this.images.length) {
                 this.index = 0;
