@@ -18,3 +18,18 @@
 .is-pending {
   transition: .3s;
   opacity: .7; }
+
+.js360-container {
+  line-height: 1em; }
+  .js360-container .js360-load {
+    position: absolute;
+    bottom: 0px;
+    left: 0px;
+    cursor: pointer; }
+    .js360-container .js360-load svg {
+      width: 60px;
+      height: 60px; }
+      .js360-container .js360-load svg path, .js360-container .js360-load svg polygon {
+        transition: .3s; }
+    .js360-container .js360-load:hover svg path, .js360-container .js360-load:hover svg polygon {
+      fill: #b89f60; }

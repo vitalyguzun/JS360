@@ -3,7 +3,7 @@ import { Canvas } from './Canvas';
 export class JS360 {
     constructor(options) {
         this.props = { ...options };
-        this.canvases = [];
+        this.canvases = {};
     }
 
     render() {
@@ -22,7 +22,7 @@ export class JS360 {
             const { url, retinaPrefix } = elem.dataset;
             const { target, ...rest } = this.props;
 
-            elem.classList.add('js-360-container');
+            elem.classList.add('js360-container');
             this.canvases[url] = new Canvas({ elem, retinaPrefix, ...rest });
         });
     }

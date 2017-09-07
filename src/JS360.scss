@@ -19,3 +19,31 @@
     transition: .3s;
     opacity: .7;
 }
+
+.js360-container {
+    line-height: 1em;
+
+    .js360-load {
+        position: absolute;
+        bottom: 0px;
+        left: 0px;
+        cursor: pointer;
+
+        svg {
+            width: 60px;
+            height: 60px;
+
+            path, polygon {
+                transition: .3s;
+            }
+        }
+
+        &:hover {
+            svg {
+                path, polygon {
+                    fill: #b89f60;
+                }
+            }
+        }
+    }
+}

@@ -1,11 +1,13 @@
 import { getXFn, httpGet } from './utils';
+import { Controls } from './Controls';
+import { LOAD } from './constants';
 import './js360.scss';
 
 const LOAD_EVENTS = ['mousemove'];
 const ROTATE_EVENTS = ['mousedown'];
 
 export class Canvas {
-    constructor({ elem , retinaPrefix, speed, ...rest }) {
+    constructor({ elem , retinaPrefix, speed, controls, ...rest }) {
         const { dataset: { loadEvents = '[]', rotateEvents = '[]' }} = elem;
 
         this.props = {
@@ -20,14 +22,20 @@ export class Canvas {
             url: elem.dataset.url,
             baseUrl: elem.dataset.baseUrl,
             speed: (Math.floor((elem.dataset.speed || speed || 1) * 100) / 100),
+            controls: {
+                load: controls && controls.load ? document.createElement('div') : null
+            },
             ...rest
         };
+
+        console.log(this.props);
 
         this.index = 0;
         this.isMoved = false;
         this.delta = null;
         this.step = null;
         this.interval = null;
+        this.controls = {};
 
         this.images = [];
 
@@ -45,12 +53,17 @@ export class Canvas {
         canvas.setAttribute('height', `${height}px`);
         container.style.position = 'relative';
         this.getPreviewImg();
+        this.initControls();
         this.addListeners();
     }
 
     render() {
-        const { container, canvas } = this.props;
+        const { container, canvas, controls: { load }} = this.props;
         container.append(canvas);
+
+        if (load) {
+            container.append(load);
+        }
     }
 
     getPreviewImg() {
@@ -64,9 +77,13 @@ export class Canvas {
     }
 
     addListeners() {
-        const { container, loadEvents, rotateEvents } = this.props;
+        const { container, controls, loadEvents, rotateEvents } = this.props;
 
         rotateEvents.forEach((eventName) => container.addEventListener(eventName, ({ clientX, changedTouches, type }) => {
+            if (!this.images.length) {
+                return;
+            }
+
             if (type === 'mousedown') {
                 this.delta = this.getX(clientX) - (this.index * this.step);
             } else if (type === 'touchstart') {
@@ -75,7 +92,9 @@ export class Canvas {
 
             this.isMoved = true;
         }));
-        loadEvents.forEach((event) => container.addEventListener(event, this.getContent));
+
+        const loadTarget = controls.load ? controls.load : container;
+        loadEvents.forEach((event) => loadTarget.addEventListener(event, this.getContent));
 
         container.addEventListener('mousemove', this.changeImage);
         container.addEventListener('touchmove', this.changeImage);
@@ -112,6 +131,15 @@ export class Canvas {
         const { container } = this.props;
         container.classList.remove('is-pending');
         document.querySelector('.loader').remove();
+    }
+
+    initControls() {
+        const { controls } = this.props;
+
+        if (controls.load) {
+            controls.load.classList.add('js360-load');
+            controls.load.innerHTML = new Controls(LOAD).render();
+        }
     }
 
     getChangeImageFn = ({ container, canvas, rotateEvents, speed }) => {

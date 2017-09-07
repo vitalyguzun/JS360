@@ -70,7 +70,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 0);
+/******/ 	return __webpack_require__(__webpack_require__.s = 1);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -83,8 +83,20 @@ return /******/ (function(modules) { // webpackBootstrap
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+var LOAD = exports.LOAD = 'LOAD';
 
-var _js = __webpack_require__(1);
+/***/ }),
+/* 1 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _js = __webpack_require__(2);
 
 Object.keys(_js).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -97,7 +109,7 @@ Object.keys(_js).forEach(function (key) {
 });
 
 /***/ }),
-/* 1 */
+/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -114,7 +126,7 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Canvas = __webpack_require__(2);
+var _Canvas = __webpack_require__(3);
 
 function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
 
@@ -125,7 +137,7 @@ var JS360 = exports.JS360 = function () {
         _classCallCheck(this, JS360);
 
         this.props = _extends({}, options);
-        this.canvases = [];
+        this.canvases = {};
     }
 
     _createClass(JS360, [{
@@ -154,7 +166,7 @@ var JS360 = exports.JS360 = function () {
                     target = _props.target,
                     rest = _objectWithoutProperties(_props, ['target']);
 
-                elem.classList.add('js-360-container');
+                elem.classList.add('js360-container');
                 _this.canvases[url] = new _Canvas.Canvas(_extends({ elem: elem, retinaPrefix: retinaPrefix }, rest));
             });
         }
@@ -164,7 +176,7 @@ var JS360 = exports.JS360 = function () {
 }();
 
 /***/ }),
-/* 2 */
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -179,9 +191,13 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _utils = __webpack_require__(3);
+var _utils = __webpack_require__(4);
 
-__webpack_require__(4);
+var _Controls = __webpack_require__(5);
+
+var _constants = __webpack_require__(0);
+
+__webpack_require__(6);
 
 function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
 
@@ -195,7 +211,8 @@ var Canvas = exports.Canvas = function () {
         var elem = _ref.elem,
             retinaPrefix = _ref.retinaPrefix,
             speed = _ref.speed,
-            rest = _objectWithoutProperties(_ref, ['elem', 'retinaPrefix', 'speed']);
+            controls = _ref.controls,
+            rest = _objectWithoutProperties(_ref, ['elem', 'retinaPrefix', 'speed', 'controls']);
 
         _classCallCheck(this, Canvas);
 
@@ -219,14 +236,20 @@ var Canvas = exports.Canvas = function () {
             rotateEvents: JSON.parse(rotateEvents).length ? JSON.parse(rotateEvents) : ROTATE_EVENTS,
             url: elem.dataset.url,
             baseUrl: elem.dataset.baseUrl,
-            speed: Math.floor((elem.dataset.speed || speed || 1) * 100) / 100
+            speed: Math.floor((elem.dataset.speed || speed || 1) * 100) / 100,
+            controls: {
+                load: controls && controls.load ? document.createElement('div') : null
+            }
         }, rest);
+
+        console.log(this.props);
 
         this.index = 0;
         this.isMoved = false;
         this.delta = null;
         this.step = null;
         this.interval = null;
+        this.controls = {};
 
         this.images = [];
 
@@ -251,6 +274,7 @@ var Canvas = exports.Canvas = function () {
             canvas.setAttribute('height', height + 'px');
             container.style.position = 'relative';
             this.getPreviewImg();
+            this.initControls();
             this.addListeners();
         }
     }, {
@@ -258,9 +282,14 @@ var Canvas = exports.Canvas = function () {
         value: function render() {
             var _props2 = this.props,
                 container = _props2.container,
-                canvas = _props2.canvas;
+                canvas = _props2.canvas,
+                load = _props2.controls.load;
 
             container.append(canvas);
+
+            if (load) {
+                container.append(load);
+            }
         }
     }, {
         key: 'getPreviewImg',
@@ -287,6 +316,7 @@ var Canvas = exports.Canvas = function () {
 
             var _props4 = this.props,
                 container = _props4.container,
+                controls = _props4.controls,
                 loadEvents = _props4.loadEvents,
                 rotateEvents = _props4.rotateEvents;
 
@@ -297,6 +327,10 @@ var Canvas = exports.Canvas = function () {
                         changedTouches = _ref2.changedTouches,
                         type = _ref2.type;
 
+                    if (!_this.images.length) {
+                        return;
+                    }
+
                     if (type === 'mousedown') {
                         _this.delta = _this.getX(clientX) - _this.index * _this.step;
                     } else if (type === 'touchstart') {
@@ -306,8 +340,10 @@ var Canvas = exports.Canvas = function () {
                     _this.isMoved = true;
                 });
             });
+
+            var loadTarget = controls.load ? controls.load : container;
             loadEvents.forEach(function (event) {
-                return container.addEventListener(event, _this.getContent);
+                return loadTarget.addEventListener(event, _this.getContent);
             });
 
             container.addEventListener('mousemove', this.changeImage);
@@ -337,6 +373,17 @@ var Canvas = exports.Canvas = function () {
 
             container.classList.remove('is-pending');
             document.querySelector('.loader').remove();
+        }
+    }, {
+        key: 'initControls',
+        value: function initControls() {
+            var controls = this.props.controls;
+
+
+            if (controls.load) {
+                controls.load.classList.add('js360-load');
+                controls.load.innerHTML = new _Controls.Controls(_constants.LOAD).render();
+            }
         }
     }]);
 
@@ -412,7 +459,7 @@ var _initialiseProps = function _initialiseProps() {
 };
 
 /***/ }),
-/* 3 */
+/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -451,7 +498,50 @@ var httpGet = exports.httpGet = function httpGet(url) {
 };
 
 /***/ }),
-/* 4 */
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.Controls = undefined;
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _constants = __webpack_require__(0);
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Controls = exports.Controls = function () {
+    function Controls(type) {
+        _classCallCheck(this, Controls);
+
+        this.props = { type: type };
+    }
+
+    _createClass(Controls, [{
+        key: 'render',
+        value: function render() {
+            var type = this.props.type;
+
+
+            switch (type) {
+                case _constants.LOAD:
+                    return '<?xml version="1.0" encoding="utf-8"?>\n                    <!-- Generator: Adobe Illustrator 18.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->\n                    <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n                    <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"\n                    \t width="300px" height="300px" viewBox="45 45 420 420" enable-background="new 0 0 500 500" xml:space="preserve">\n                    <g>\n                    \t<g>\n                    \t\t<path fill="#010101" d="M195.6,260.1c1.9,2.7,5.1,4.6,8.6,4.6c4.4,0,8.7-3.4,8.7-8.4c0-4.8-4-8.5-9.1-8.5c-1.9,0-3.8,0.5-5.6,1.3\n                    \t\t\tv-5.3l8.7-10.3h-15.5v-8h28.2v5.3l-8.4,10.3c6.4,2.5,10.7,8,10.7,15c0,9.8-7.7,16.4-17.3,16.4c-5.8,0-11.3-2.6-15.4-7.2\n                    \t\t\tL195.6,260.1z"/>\n                    \t\t<path fill="#010101" d="M253.9,225.6l-8.7,14.8h0.6c8.8,0,16.2,6.7,16.2,16c0,9-7.5,16.3-16.5,16.3c-8.7,0-17-6.2-17-15.8\n                    \t\t\tc0-4.6,2.1-8.7,4.6-12.8l10.9-18.4H253.9z M237.1,256.8c0,4.4,3.7,7.9,8.2,7.9c4.6,0,7.8-3.6,7.8-8.1c0-4.4-3.3-8.3-8.3-8.3\n                    \t\t\tc-1.7,0-3.2,0.3-5,1.1C238.7,251.2,237.1,253.7,237.1,256.8z"/>\n                    \t\t<path fill="#010101" d="M284.6,225c11.9,0,16.2,10.7,16.2,23.9c0,13.2-4.4,23.9-16.2,23.9c-11.9,0-16.2-10.7-16.2-23.9\n                    \t\t\tC268.3,235.6,272.7,225,284.6,225z M284.6,232.9c-5.4,0-7.3,7.2-7.3,15.9c0,8.7,1.9,15.9,7.3,15.9c5.4,0,7.3-7.2,7.3-15.9\n                    \t\t\tC291.8,240.1,289.9,232.9,284.6,232.9z"/>\n                    \t\t<path fill="#010101" d="M316.4,221.6c4,0,7.3,3.2,7.3,7.3c0,4-3.2,7.3-7.3,7.3c-4,0-7.3-3.2-7.3-7.3\n                    \t\t\tC309.1,224.9,312.3,221.6,316.4,221.6z M316.4,230.9c1.1,0,2-0.9,2-2c0-1.1-0.9-2-2-2c-1.1,0-2,0.9-2,2\n                    \t\t\tC314.4,230.1,315.3,230.9,316.4,230.9z"/>\n                    \t</g>\n                    \t<g>\n                    \t\t<path fill="#010101" d="M250.5,376.5c-70,0-127-57-127-127s57-127,127-127c28.8,0,56,9.4,78.6,27.2l-7.7,9.8\n                    \t\t\tc-20.4-16-44.9-24.5-70.8-24.5C187.3,135,136,186.3,136,249.5S187.3,364,250.5,364c63.2,0,114.5-51.4,114.5-114.5\n                    \t\t\tc0-26.7-9.4-52.7-26.5-73.3l9.6-8c18.9,22.7,29.4,51.6,29.4,81.2C377.5,319.5,320.5,376.5,250.5,376.5z"/>\n                    \t\t<polygon fill="#010101" points="331.8,160.1 335.8,198.8 369.7,172.6 \t\t"/>\n                    \t</g>\n                    </g>\n                    </svg>\n                ';
+                default:
+                    return '<div></div>';
+            }
+        }
+    }]);
+
+    return Controls;
+}();
+
+/***/ }),
+/* 6 */
 /***/ (function(module, exports) {
 
 // removed by extract-text-webpack-plugin
