@@ -28,24 +28,20 @@ export class Canvas {
             ...rest
         };
 
-        this.interval = null;
-        this.intervalIndex = 0;
-
         this.meta = {
             success: false,
             pending: false,
-            moving: false,
-            fixed: false
+            moving: false
         }
 
+        this.interval = null;
         this.clientX = 0;
         this.delta = null;
         this.step = null;
         this.controls = {};
-
         this.images = [];
 
-        this.changeImage = this.getChangeImageFn(this.props);
+        this.updateImage = this.getUpdateImageFn(this.props);
         this.getX = getXFn(this.props.container);
 
         this.init();
@@ -64,15 +60,15 @@ export class Canvas {
     }
 
     render() {
-        const { container, canvas, controls: { load }} = this.props;
+        const { container, canvas, controls } = this.props;
         container.append(canvas);
 
-        if (load) {
-            container.append(load);
-        }
+        if (!controls.load) return;
+
+        container.append(controls.load);
     }
 
-    getPreviewImg() {
+    getPreviewImg = () => {
         const { canvas, width, height, preview } = this.props;
 
         const context = canvas.getContext('2d');
@@ -82,36 +78,36 @@ export class Canvas {
         img.onload = () => context.drawImage(img, 0, 0, width, height);
     }
 
-    addListeners() {
+    addListeners = () => {
         const { container, controls, loadEvents, rotateEvents } = this.props;
         const loadTarget = controls.load || container;
 
         rotateEvents.forEach((event) => container.addEventListener(event, this.rotate));
         loadEvents.forEach((event) => loadTarget.addEventListener(event, this.load));
-        container.addEventListener('mousemove', this.onMove);
-        container.addEventListener('touchmove', this.onMove);
+        container.addEventListener('mousemove', this.move);
+        container.addEventListener('touchmove', this.move);
         container.addEventListener('mouseup', this.stop);
         container.addEventListener('touchend', this.stop);
     }
 
-    onMove = (event) => {
-        if (this.isRotatable) {
-            this.meta.moving = true;
-            this.updateClientX(event);
-            this.changeImage(this.index);
-        };
+    move = (event) => {
+        if (!this.isRotatable) return;
+
+        this.meta.moving = true;
+        this.updateClientX(event);
+        this.updateImage();
     }
 
     stop = (event) => {
-        this.onMove(event);
+        this.move(event);
         this.meta.moving = false;
-        this.calcDelta(event);
-        this.intervalIndex = this.index;
+        this.updateDelta(event);
     }
 
     rotate = (event) => {
         if (!this.images.length) return;
-        this.calcDelta(event);
+
+        this.updateDelta(event);
         this.meta.moving = true;
     };
 
@@ -119,8 +115,8 @@ export class Canvas {
         const { baseUrl, url, width, retinaPrefix, autoPlay } = this.props;
 
         if (url && !this.meta.success && !this.meta.pending) {
-            this.meta.pending = true;
             const path = [baseUrl, retinaPrefix, url].filter(path => path).join('/');
+            this.meta.pending = true;
 
             this.addLoader();
             httpGet(path).then((images) => {
@@ -137,60 +133,49 @@ export class Canvas {
 
     play = () => {
         this.interval = setInterval(() => {
-            if (!this.meta.moving) {
-                this.intervalIndex++;
-                this.changeImage(this.intervalIndex);
+            if (this.meta.moving) return;
 
-                if (this.intervalIndex >= this.images.length) {
-                    this.intervalIndex = 0;
-                }
-            }
+            this.delta--;
+            this.updateImage();
         }, Math.floor(50 / this.props.speed));
-    }
-
-    calcDelta = ({ clientX, changedTouches, type }) => {
-        if (type === 'mousedown' || type === 'touchstart') {
-            const index = this.interval ? this.intervalIndex : this.index;
-            const x = clientX || changedTouches[0].clientX;
-            const { speed } = this.props;
-
-            this.delta = this.getX(x) - ((index * this.step) / speed);
-        }
     }
 
     addLoader = () => {
         const { container } = this.props;
-        container.classList.add('is-pending');
-
         const loader = document.createElement('div');
+
         loader.classList.add('loader');
+        container.classList.add('is-pending');
         container.append(loader);
     }
 
     removeLoader = () => {
         const { container } = this.props;
         container.classList.remove('is-pending');
-        document.querySelector('.loader').remove();
+        container.querySelector('.loader').remove();
     }
 
     initControls = () => {
         const { controls } = this.props;
 
-        if (controls.load) {
-            controls.load.classList.add('js360-load');
-            controls.load.innerHTML = new Controls(LOAD).render();
-        }
+        if (!controls.load) return;
+
+        controls.load.classList.add('js360-load');
+        controls.load.innerHTML = new Controls(LOAD).render();
     }
 
     updateClientX = ({ type, changedTouches, clientX }) => {
         this.clientX = type === 'touchmove' ? this.getX(changedTouches[0].clientX) : this.getX(clientX);
     }
 
+    updateDelta = ({ type, changedTouches, clientX }) => {
+        if (!['mousedown', 'touchstart'].includes(type)) return
+        this.delta = this.getX(clientX || changedTouches[0].clientX) - ((this.index * this.step) / this.props.speed);
+    }
+
     get index() {
         const { speed } = this.props;
-        let index = 0;
-
-        index = Math.round((this.clientX - this.delta) / (this.step / speed));
+        let index = Math.round((this.clientX - this.delta) / (this.step / speed));
 
         if (index >= this.images.length) {
             index = 0;
@@ -202,11 +187,7 @@ export class Canvas {
             this.delta = this.clientX;
         }
 
-        if (Number.isNaN(index)) {
-            index = 0;
-        }
-
-        return index;
+        return Number.isNaN(index) ? 0 : index;
     }
 
     get isRotatable() {
@@ -214,14 +195,14 @@ export class Canvas {
         return !((rotateEvents.includes('mousedown') || rotateEvents.includes('touchstart')) && !this.meta.moving);
     }
 
-    getChangeImageFn = ({ container, canvas, rotateEvents, speed }) => {
+    getUpdateImageFn = ({ container, canvas, rotateEvents, speed }) => {
         const width = container.clientWidth || 320;
         const height = container.clientHeight || 180;
         const context = canvas.getContext('2d');
 
-        return (index) => {
+        return () => {
             const img = document.createElement('img');
-            img.src = this.images[index > 0 ? index : (this.images.length + index)];
+            img.src = this.images[this.index > 0 ? this.index : (this.images.length + this.index)];
             img.onload = () => context.drawImage(img, 0, 0, width, height);
         };
     };
