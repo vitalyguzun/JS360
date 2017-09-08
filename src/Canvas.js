@@ -29,6 +29,7 @@ export class Canvas {
         };
 
         this.interval = null;
+        this.intervalIndex = 0;
 
         this.meta = {
             success: false,
@@ -89,15 +90,23 @@ export class Canvas {
         loadEvents.forEach((event) => loadTarget.addEventListener(event, this.load));
         container.addEventListener('mousemove', this.onMove);
         container.addEventListener('touchmove', this.onMove);
-        container.addEventListener('mouseup', () => this.meta.moving = null);
-        container.addEventListener('touchend', () => this.meta.moving = null);
+        container.addEventListener('mouseup', this.stop);
+        container.addEventListener('touchend', this.stop);
     }
 
     onMove = (event) => {
         if (this.isRotatable) {
+            this.meta.moving = true;
             this.updateClientX(event);
-            this.changeImage();
+            this.changeImage(this.index);
         };
+    }
+
+    stop = (event) => {
+        this.onMove(event);
+        this.meta.moving = false;
+        this.calcDelta(event);
+        this.intervalIndex = this.index;
     }
 
     rotate = (event) => {
@@ -107,28 +116,49 @@ export class Canvas {
     };
 
     load = (event) => {
-        const { baseUrl, url, width, retinaPrefix } = this.props;
+        const { baseUrl, url, width, retinaPrefix, autoPlay } = this.props;
 
-        if (url && !this.interval) {
-            this.interval = 1;
+        if (url && !this.meta.success && !this.meta.pending) {
+            this.meta.pending = true;
             const path = [baseUrl, retinaPrefix, url].filter(path => path).join('/');
 
             this.addLoader();
             httpGet(path).then((images) => {
                 this.step = Math.floor((width / images.length) * 1000) / 1000;
                 this.images = images;
+                this.meta.success = true;
+                this.meta.pending = false;
                 this.removeLoader();
+
+                if (autoPlay) this.play();
             });
         }
     }
 
+    play = () => {
+        this.interval = setInterval(() => {
+            if (!this.meta.moving) {
+                this.intervalIndex++;
+                this.changeImage(this.intervalIndex);
+
+                if (this.intervalIndex >= this.images.length) {
+                    this.intervalIndex = 0;
+                }
+            }
+        }, Math.floor(50 / this.props.speed));
+    }
+
     calcDelta = ({ clientX, changedTouches, type }) => {
         if (type === 'mousedown' || type === 'touchstart') {
-            this.delta = this.getX(clientX || changedTouches[0].clientX) - (this.index * this.step);
+            const index = this.interval ? this.intervalIndex : this.index;
+            const x = clientX || changedTouches[0].clientX;
+            const { speed } = this.props;
+
+            this.delta = this.getX(x) - ((index * this.step) / speed);
         }
     }
 
-    addLoader() {
+    addLoader = () => {
         const { container } = this.props;
         container.classList.add('is-pending');
 
@@ -137,13 +167,13 @@ export class Canvas {
         container.append(loader);
     }
 
-    removeLoader() {
+    removeLoader = () => {
         const { container } = this.props;
         container.classList.remove('is-pending');
         document.querySelector('.loader').remove();
     }
 
-    initControls() {
+    initControls = () => {
         const { controls } = this.props;
 
         if (controls.load) {
@@ -151,18 +181,6 @@ export class Canvas {
             controls.load.innerHTML = new Controls(LOAD).render();
         }
     }
-
-    getChangeImageFn = ({ container, canvas, rotateEvents, speed }) => {
-        const width = container.clientWidth || 320;
-        const height = container.clientHeight || 180;
-        const context = canvas.getContext('2d');
-
-        return () => {
-            const img = document.createElement('img');
-            img.src = this.images[this.index > 0 ? this.index : (this.images.length + this.index)];
-            img.onload = () => context.drawImage(img, 0, 0, width, height);
-        };
-    };
 
     updateClientX = ({ type, changedTouches, clientX }) => {
         this.clientX = type === 'touchmove' ? this.getX(changedTouches[0].clientX) : this.getX(clientX);
@@ -184,6 +202,10 @@ export class Canvas {
             this.delta = this.clientX;
         }
 
+        if (Number.isNaN(index)) {
+            index = 0;
+        }
+
         return index;
     }
 
@@ -191,4 +213,16 @@ export class Canvas {
         const { rotateEvents } = this.props;
         return !((rotateEvents.includes('mousedown') || rotateEvents.includes('touchstart')) && !this.meta.moving);
     }
+
+    getChangeImageFn = ({ container, canvas, rotateEvents, speed }) => {
+        const width = container.clientWidth || 320;
+        const height = container.clientHeight || 180;
+        const context = canvas.getContext('2d');
+
+        return (index) => {
+            const img = document.createElement('img');
+            img.src = this.images[index > 0 ? index : (this.images.length + index)];
+            img.onload = () => context.drawImage(img, 0, 0, width, height);
+        };
+    };
 }

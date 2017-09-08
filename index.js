@@ -242,13 +242,19 @@ var Canvas = exports.Canvas = function () {
             }
         }, rest);
 
-        console.log(this.props);
+        this.interval = null;
+        this.intervalIndex = 0;
 
-        this.index = 0;
-        this.isMoved = false;
+        this.meta = {
+            success: false,
+            pending: false,
+            moving: false,
+            fixed: false
+        };
+
+        this.clientX = 0;
         this.delta = null;
         this.step = null;
-        this.interval = null;
         this.controls = {};
 
         this.images = [];
@@ -320,70 +326,50 @@ var Canvas = exports.Canvas = function () {
                 loadEvents = _props4.loadEvents,
                 rotateEvents = _props4.rotateEvents;
 
+            var loadTarget = controls.load || container;
 
-            rotateEvents.forEach(function (eventName) {
-                return container.addEventListener(eventName, function (_ref2) {
-                    var clientX = _ref2.clientX,
-                        changedTouches = _ref2.changedTouches,
-                        type = _ref2.type;
-
-                    if (!_this.images.length) {
-                        return;
-                    }
-
-                    if (type === 'mousedown') {
-                        _this.delta = _this.getX(clientX) - _this.index * _this.step;
-                    } else if (type === 'touchstart') {
-                        _this.delta = _this.getX(changedTouches[0].clientX) - _this.index * _this.step;
-                    }
-
-                    _this.isMoved = true;
-                });
+            rotateEvents.forEach(function (event) {
+                return container.addEventListener(event, _this.rotate);
             });
-
-            var loadTarget = controls.load ? controls.load : container;
             loadEvents.forEach(function (event) {
-                return loadTarget.addEventListener(event, _this.getContent);
+                return loadTarget.addEventListener(event, _this.load);
             });
-
-            container.addEventListener('mousemove', this.changeImage);
-            container.addEventListener('touchmove', this.changeImage);
-            container.addEventListener('mouseup', function () {
-                return _this.isMoved = null;
-            });
-            container.addEventListener('touchend', function () {
-                return _this.isMoved = null;
-            });
+            container.addEventListener('mousemove', this.onMove);
+            container.addEventListener('touchmove', this.onMove);
+            container.addEventListener('mouseup', this.stop);
+            container.addEventListener('touchend', this.stop);
         }
     }, {
-        key: 'addLoader',
-        value: function addLoader() {
-            var container = this.props.container;
+        key: 'index',
+        get: function get() {
+            var speed = this.props.speed;
 
-            container.classList.add('is-pending');
+            var index = 0;
 
-            var loader = document.createElement('div');
-            loader.classList.add('loader');
-            container.append(loader);
-        }
-    }, {
-        key: 'removeLoader',
-        value: function removeLoader() {
-            var container = this.props.container;
+            index = Math.round((this.clientX - this.delta) / (this.step / speed));
 
-            container.classList.remove('is-pending');
-            document.querySelector('.loader').remove();
-        }
-    }, {
-        key: 'initControls',
-        value: function initControls() {
-            var controls = this.props.controls;
-
-
-            if (controls.load) {
-                controls.load.classList.add('js360-load');
-                controls.load.innerHTML = new _Controls.Controls(_constants.LOAD).render();
+            if (index >= this.images.length) {
+                index = 0;
+                this.delta = this.clientX;
             }
+
+            if (index <= -this.images.length) {
+                index += this.images.length;
+                this.delta = this.clientX;
+            }
+
+            if (Number.isNaN(index)) {
+                index = 0;
+            }
+
+            return index;
+        }
+    }, {
+        key: 'isRotatable',
+        get: function get() {
+            var rotateEvents = this.props.rotateEvents;
+
+            return !((rotateEvents.includes('mousedown') || rotateEvents.includes('touchstart')) && !this.meta.moving);
         }
     }]);
 
@@ -393,16 +379,38 @@ var Canvas = exports.Canvas = function () {
 var _initialiseProps = function _initialiseProps() {
     var _this2 = this;
 
-    this.getContent = function (event) {
+    this.onMove = function (event) {
+        if (_this2.isRotatable) {
+            _this2.meta.moving = true;
+            _this2.updateClientX(event);
+            _this2.changeImage(_this2.index);
+        };
+    };
+
+    this.stop = function (event) {
+        _this2.onMove(event);
+        _this2.meta.moving = false;
+        _this2.calcDelta(event);
+        _this2.intervalIndex = _this2.index;
+    };
+
+    this.rotate = function (event) {
+        if (!_this2.images.length) return;
+        _this2.calcDelta(event);
+        _this2.meta.moving = true;
+    };
+
+    this.load = function (event) {
         var _props5 = _this2.props,
             baseUrl = _props5.baseUrl,
             url = _props5.url,
             width = _props5.width,
-            retinaPrefix = _props5.retinaPrefix;
+            retinaPrefix = _props5.retinaPrefix,
+            autoPlay = _props5.autoPlay;
 
 
-        if (url && !_this2.interval) {
-            _this2.interval = 1;
+        if (url && !_this2.meta.success && !_this2.meta.pending) {
+            _this2.meta.pending = true;
             var path = [baseUrl, retinaPrefix, url].filter(function (path) {
                 return path;
             }).join('/');
@@ -411,46 +419,91 @@ var _initialiseProps = function _initialiseProps() {
             (0, _utils.httpGet)(path).then(function (images) {
                 _this2.step = Math.floor(width / images.length * 1000) / 1000;
                 _this2.images = images;
+                _this2.meta.success = true;
+                _this2.meta.pending = false;
                 _this2.removeLoader();
+
+                if (autoPlay) _this2.play();
             });
         }
     };
 
-    this.getChangeImageFn = function (_ref3) {
-        var container = _ref3.container,
-            canvas = _ref3.canvas,
-            rotateEvents = _ref3.rotateEvents,
-            speed = _ref3.speed;
+    this.play = function () {
+        _this2.interval = setInterval(function () {
+            if (!_this2.meta.moving) {
+                _this2.intervalIndex++;
+                _this2.changeImage(_this2.intervalIndex);
+
+                if (_this2.intervalIndex >= _this2.images.length) {
+                    _this2.intervalIndex = 0;
+                }
+            }
+        }, Math.floor(50 / _this2.props.speed));
+    };
+
+    this.calcDelta = function (_ref2) {
+        var clientX = _ref2.clientX,
+            changedTouches = _ref2.changedTouches,
+            type = _ref2.type;
+
+        if (type === 'mousedown' || type === 'touchstart') {
+            var index = _this2.interval ? _this2.intervalIndex : _this2.index;
+            var x = clientX || changedTouches[0].clientX;
+            var speed = _this2.props.speed;
+
+
+            _this2.delta = _this2.getX(x) - index * _this2.step / speed;
+        }
+    };
+
+    this.addLoader = function () {
+        var container = _this2.props.container;
+
+        container.classList.add('is-pending');
+
+        var loader = document.createElement('div');
+        loader.classList.add('loader');
+        container.append(loader);
+    };
+
+    this.removeLoader = function () {
+        var container = _this2.props.container;
+
+        container.classList.remove('is-pending');
+        document.querySelector('.loader').remove();
+    };
+
+    this.initControls = function () {
+        var controls = _this2.props.controls;
+
+
+        if (controls.load) {
+            controls.load.classList.add('js360-load');
+            controls.load.innerHTML = new _Controls.Controls(_constants.LOAD).render();
+        }
+    };
+
+    this.updateClientX = function (_ref3) {
+        var type = _ref3.type,
+            changedTouches = _ref3.changedTouches,
+            clientX = _ref3.clientX;
+
+        _this2.clientX = type === 'touchmove' ? _this2.getX(changedTouches[0].clientX) : _this2.getX(clientX);
+    };
+
+    this.getChangeImageFn = function (_ref4) {
+        var container = _ref4.container,
+            canvas = _ref4.canvas,
+            rotateEvents = _ref4.rotateEvents,
+            speed = _ref4.speed;
 
         var width = container.clientWidth || 320;
         var height = container.clientHeight || 180;
         var context = canvas.getContext('2d');
 
-        return function (event) {
-            if ((rotateEvents.includes('mousedown') || rotateEvents.includes('touchstart')) && !_this2.isMoved) {
-                return;
-            }
-
-            var clientX = null;
-            if (event.type === 'touchmove') {
-                clientX = _this2.getX(event.changedTouches[0].clientX);
-            } else {
-                clientX = _this2.getX(event.clientX);
-            }
-
-            _this2.index = Math.round((clientX - _this2.delta) / (_this2.step / speed));
-
-            if (_this2.index >= _this2.images.length) {
-                _this2.index = 0;
-                _this2.delta = clientX;
-            }
-
-            if (_this2.index <= -_this2.images.length) {
-                _this2.index += _this2.images.length;
-            }
-
+        return function (index) {
             var img = document.createElement('img');
-            img.src = _this2.images[_this2.index > 0 ? _this2.index : _this2.images.length + _this2.index];
+            img.src = _this2.images[index > 0 ? index : _this2.images.length + index];
             img.onload = function () {
                 return context.drawImage(img, 0, 0, width, height);
             };
