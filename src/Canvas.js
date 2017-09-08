@@ -28,13 +28,18 @@ export class Canvas {
             ...rest
         };
 
-        console.log(this.props);
+        this.interval = null;
 
-        this.index = 0;
-        this.isMoved = false;
+        this.meta = {
+            success: false,
+            pending: false,
+            moving: false,
+            fixed: false
+        }
+
+        this.clientX = 0;
         this.delta = null;
         this.step = null;
-        this.interval = null;
         this.controls = {};
 
         this.images = [];
@@ -78,31 +83,30 @@ export class Canvas {
 
     addListeners() {
         const { container, controls, loadEvents, rotateEvents } = this.props;
+        const loadTarget = controls.load || container;
 
-        rotateEvents.forEach((eventName) => container.addEventListener(eventName, ({ clientX, changedTouches, type }) => {
-            if (!this.images.length) {
-                return;
-            }
-
-            if (type === 'mousedown') {
-                this.delta = this.getX(clientX) - (this.index * this.step);
-            } else if (type === 'touchstart') {
-                this.delta = this.getX(changedTouches[0].clientX) - (this.index * this.step);
-            }
-
-            this.isMoved = true;
-        }));
-
-        const loadTarget = controls.load ? controls.load : container;
-        loadEvents.forEach((event) => loadTarget.addEventListener(event, this.getContent));
-
-        container.addEventListener('mousemove', this.changeImage);
-        container.addEventListener('touchmove', this.changeImage);
-        container.addEventListener('mouseup', () => this.isMoved = null);
-        container.addEventListener('touchend', () => this.isMoved = null);
+        rotateEvents.forEach((event) => container.addEventListener(event, this.rotate));
+        loadEvents.forEach((event) => loadTarget.addEventListener(event, this.load));
+        container.addEventListener('mousemove', this.onMove);
+        container.addEventListener('touchmove', this.onMove);
+        container.addEventListener('mouseup', () => this.meta.moving = null);
+        container.addEventListener('touchend', () => this.meta.moving = null);
     }
 
-    getContent = (event) => {
+    onMove = (event) => {
+        if (this.isRotatable) {
+            this.updateClientX(event);
+            this.changeImage();
+        };
+    }
+
+    rotate = (event) => {
+        if (!this.images.length) return;
+        this.calcDelta(event);
+        this.meta.moving = true;
+    };
+
+    load = (event) => {
         const { baseUrl, url, width, retinaPrefix } = this.props;
 
         if (url && !this.interval) {
@@ -115,6 +119,12 @@ export class Canvas {
                 this.images = images;
                 this.removeLoader();
             });
+        }
+    }
+
+    calcDelta = ({ clientX, changedTouches, type }) => {
+        if (type === 'mousedown' || type === 'touchstart') {
+            this.delta = this.getX(clientX || changedTouches[0].clientX) - (this.index * this.step);
         }
     }
 
@@ -147,32 +157,38 @@ export class Canvas {
         const height = container.clientHeight || 180;
         const context = canvas.getContext('2d');
 
-        return (event) => {
-            if ((rotateEvents.includes('mousedown') || rotateEvents.includes('touchstart')) && !this.isMoved) {
-                return;
-            }
-
-            let clientX = null;
-            if (event.type === 'touchmove') {
-                clientX = this.getX(event.changedTouches[0].clientX);
-            } else {
-                clientX = this.getX(event.clientX);
-            }
-
-            this.index = Math.round((clientX - this.delta) / (this.step / speed));
-
-            if (this.index >= this.images.length) {
-                this.index = 0;
-                this.delta = clientX;
-            }
-
-            if (this.index <= -this.images.length) {
-                this.index += this.images.length;
-            }
-
+        return () => {
             const img = document.createElement('img');
             img.src = this.images[this.index > 0 ? this.index : (this.images.length + this.index)];
             img.onload = () => context.drawImage(img, 0, 0, width, height);
         };
     };
+
+    updateClientX = ({ type, changedTouches, clientX }) => {
+        this.clientX = type === 'touchmove' ? this.getX(changedTouches[0].clientX) : this.getX(clientX);
+    }
+
+    get index() {
+        const { speed } = this.props;
+        let index = 0;
+
+        index = Math.round((this.clientX - this.delta) / (this.step / speed));
+
+        if (index >= this.images.length) {
+            index = 0;
+            this.delta = this.clientX;
+        }
+
+        if (index <= -this.images.length) {
+            index += (this.images.length);
+            this.delta = this.clientX;
+        }
+
+        return index;
+    }
+
+    get isRotatable() {
+        const { rotateEvents } = this.props;
+        return !((rotateEvents.includes('mousedown') || rotateEvents.includes('touchstart')) && !this.meta.moving);
+    }
 }
