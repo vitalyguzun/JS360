@@ -1,5 +1,5 @@
 import { getXFn, httpGet } from './utils';
-import { Controls } from './Controls';
+import { Controls } from './js360Controls';
 import { LOAD } from './constants';
 import './js360.scss';
 

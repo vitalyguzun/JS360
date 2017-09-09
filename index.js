@@ -193,7 +193,7 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _utils = __webpack_require__(4);
 
-var _Controls = __webpack_require__(5);
+var _js360Controls = __webpack_require__(5);
 
 var _constants = __webpack_require__(0);
 
@@ -447,7 +447,7 @@ var _initialiseProps = function _initialiseProps() {
         if (!controls.load) return;
 
         controls.load.classList.add('js360-load');
-        controls.load.innerHTML = new _Controls.Controls(_constants.LOAD).render();
+        controls.load.innerHTML = new _js360Controls.Controls(_constants.LOAD).render();
     };
 
     this.updateClientX = function (_ref2) {
