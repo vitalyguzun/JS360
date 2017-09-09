@@ -126,7 +126,7 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Canvas = __webpack_require__(3);
+var _js360Canvas = __webpack_require__(3);
 
 function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
 
@@ -167,7 +167,7 @@ var JS360 = exports.JS360 = function () {
                     rest = _objectWithoutProperties(_props, ['target']);
 
                 elem.classList.add('js360-container');
-                _this.canvases[url] = new _Canvas.Canvas(_extends({ elem: elem, retinaPrefix: retinaPrefix }, rest));
+                _this.canvases[url] = new _js360Canvas.JS360Canvas(_extends({ elem: elem, retinaPrefix: retinaPrefix }, rest));
             });
         }
     }]);
@@ -185,7 +185,7 @@ var JS360 = exports.JS360 = function () {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.Canvas = undefined;
+exports.JS360Canvas = undefined;
 
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
@@ -206,15 +206,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 var LOAD_EVENTS = ['mousemove'];
 var ROTATE_EVENTS = ['mousedown'];
 
-var Canvas = exports.Canvas = function () {
-    function Canvas(_ref) {
+var JS360Canvas = exports.JS360Canvas = function () {
+    function JS360Canvas(_ref) {
         var elem = _ref.elem,
             retinaPrefix = _ref.retinaPrefix,
             speed = _ref.speed,
             controls = _ref.controls,
             rest = _objectWithoutProperties(_ref, ['elem', 'retinaPrefix', 'speed', 'controls']);
 
-        _classCallCheck(this, Canvas);
+        _classCallCheck(this, JS360Canvas);
 
         _initialiseProps.call(this);
 
@@ -262,7 +262,7 @@ var Canvas = exports.Canvas = function () {
         this.render();
     }
 
-    _createClass(Canvas, [{
+    _createClass(JS360Canvas, [{
         key: 'init',
         value: function init() {
             var _props = this.props,
@@ -321,7 +321,7 @@ var Canvas = exports.Canvas = function () {
         }
     }]);
 
-    return Canvas;
+    return JS360Canvas;
 }();
 
 var _initialiseProps = function _initialiseProps() {
@@ -464,6 +464,7 @@ var _initialiseProps = function _initialiseProps() {
             clientX = _ref3.clientX;
 
         if (!['mousedown', 'touchstart'].includes(type)) return;
+
         _this.delta = _this.getX(clientX || changedTouches[0].clientX) - _this.index * _this.step / _this.props.speed;
     };
 
@@ -479,7 +480,11 @@ var _initialiseProps = function _initialiseProps() {
 
         return function () {
             var img = document.createElement('img');
-            img.src = _this.images[_this.index > 0 ? _this.index : _this.images.length + _this.index];
+            var base64 = _this.images[_this.index > 0 ? _this.index : _this.images.length + _this.index];
+
+            if (!base64) return;
+
+            img.src = base64;
             img.onload = function () {
                 return context.drawImage(img, 0, 0, width, height);
             };

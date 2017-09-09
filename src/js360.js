@@ -1,4 +1,4 @@
-import { Canvas } from './Canvas';
+import { JS360Canvas } from './js360Canvas';
 
 export class JS360 {
     constructor(options) {
@@ -23,7 +23,7 @@ export class JS360 {
             const { target, ...rest } = this.props;
 
             elem.classList.add('js360-container');
-            this.canvases[url] = new Canvas({ elem, retinaPrefix, ...rest });
+            this.canvases[url] = new JS360Canvas({ elem, retinaPrefix, ...rest });
         });
     }
 }

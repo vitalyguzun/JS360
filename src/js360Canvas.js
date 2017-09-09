@@ -6,7 +6,7 @@ import './js360.scss';
 const LOAD_EVENTS = ['mousemove'];
 const ROTATE_EVENTS = ['mousedown'];
 
-export class Canvas {
+export class JS360Canvas {
     constructor({ elem , retinaPrefix, speed, controls, ...rest }) {
         const { dataset: { loadEvents = '[]', rotateEvents = '[]' }} = elem;
 
@@ -165,11 +165,12 @@ export class Canvas {
     }
 
     updateClientX = ({ type, changedTouches, clientX }) => {
-        this.clientX = type === 'touchmove' ? this.getX(changedTouches[0].clientX) : this.getX(clientX);
+        this.clientX = (type === 'touchmove') ? this.getX(changedTouches[0].clientX) : this.getX(clientX);
     }
 
     updateDelta = ({ type, changedTouches, clientX }) => {
-        if (!['mousedown', 'touchstart'].includes(type)) return
+        if (!['mousedown', 'touchstart'].includes(type)) return;
+
         this.delta = this.getX(clientX || changedTouches[0].clientX) - ((this.index * this.step) / this.props.speed);
     }
 
@@ -202,7 +203,11 @@ export class Canvas {
 
         return () => {
             const img = document.createElement('img');
-            img.src = this.images[this.index > 0 ? this.index : (this.images.length + this.index)];
+            const base64 = this.images[this.index > 0 ? this.index : (this.images.length + this.index)];
+
+            if (!base64) return;
+
+            img.src = base64;
             img.onload = () => context.drawImage(img, 0, 0, width, height);
         };
     };
