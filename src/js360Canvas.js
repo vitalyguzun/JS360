@@ -1,4 +1,4 @@
-import { getXFn, httpGet } from './utils';
+import { getXFn, httpGet, intersects } from './utils';
 import { Controls } from './js360Controls';
 import { LOAD } from './constants';
 import './js360.scss';
@@ -7,25 +7,23 @@ const LOAD_EVENTS = ['mousemove'];
 const ROTATE_EVENTS = ['mousedown'];
 
 export class JS360Canvas {
-    constructor({ elem , retinaPrefix, speed, controls, ...rest }) {
-        const { dataset: { loadEvents = '[]', rotateEvents = '[]' }} = elem;
+    constructor({ elem, speed, controls, retinaUrl, ...propsRest }) {
+        const { loadEvents = '[]', rotateEvents = '[]', ...datasetRest } = elem.dataset;
 
         this.props = {
-            retinaPrefix: window.devicePixelRatio === 2 ? retinaPrefix : '',
-            container: elem,
             canvas: document.createElement('canvas'),
-            width: elem.clientWidth || 320,
-            height: elem.clientHeight || 180,
-            preview: elem.dataset.preview,
-            loadEvents: JSON.parse(loadEvents).length ? JSON.parse(loadEvents) : LOAD_EVENTS,
-            rotateEvents: JSON.parse(rotateEvents).length ? JSON.parse(rotateEvents) : ROTATE_EVENTS,
-            url: elem.dataset.url,
-            baseUrl: elem.dataset.baseUrl,
-            speed: (Math.floor((elem.dataset.speed || speed || 1) * 100) / 100),
+            container: elem,
             controls: {
                 load: controls && controls.load ? document.createElement('div') : null
             },
-            ...rest
+            height: elem.clientHeight || 180,
+            loadEvents: JSON.parse(loadEvents).length ? JSON.parse(loadEvents) : LOAD_EVENTS,
+            retinaUrl: window.devicePixelRatio === 2 ? (retinaUrl || datasetRest.retinaUrl || '') : '',
+            rotateEvents: JSON.parse(rotateEvents).length ? JSON.parse(rotateEvents) : ROTATE_EVENTS,
+            speed: (Math.floor((speed || datasetRest.speed || 1) * 100) / 100),
+            width: elem.clientWidth || 320,
+            ...datasetRest,
+            ...propsRest
         };
 
         this.meta = {
@@ -54,6 +52,7 @@ export class JS360Canvas {
         canvas.setAttribute('width', `${width}px`);
         canvas.setAttribute('height', `${height}px`);
         container.style.position = 'relative';
+
         this.getPreviewImg();
         this.initControls();
         this.addListeners();
@@ -61,16 +60,13 @@ export class JS360Canvas {
 
     render() {
         const { container, canvas, controls } = this.props;
+
         container.append(canvas);
-
-        if (!controls.load) return;
-
-        container.append(controls.load);
+        container.append(controls.load || '');
     }
 
     getPreviewImg = () => {
         const { canvas, width, height, preview } = this.props;
-
         const context = canvas.getContext('2d');
         const img = document.createElement('img');
 
@@ -91,7 +87,7 @@ export class JS360Canvas {
     }
 
     move = (event) => {
-        if (!this.isRotatable) return;
+        if (this.isRotateOnMousemove) return;
 
         this.meta.moving = true;
         this.updateClientX(event);
@@ -112,10 +108,10 @@ export class JS360Canvas {
     };
 
     load = (event) => {
-        const { baseUrl, url, width, retinaPrefix, autoPlay } = this.props;
+        const { baseUrl, url, width, retinaUrl, autoPlay } = this.props;
 
         if (url && !this.meta.success && !this.meta.pending) {
-            const path = [baseUrl, retinaPrefix, url].filter(path => path).join('/');
+            const path = [baseUrl, retinaUrl, url].filter(path => path).join('/');
             this.meta.pending = true;
 
             this.addLoader();
@@ -191,9 +187,11 @@ export class JS360Canvas {
         return Number.isNaN(index) ? 0 : index;
     }
 
-    get isRotatable() {
+    get isRotateOnMousemove() {
         const { rotateEvents } = this.props;
-        return !((rotateEvents.includes('mousedown') || rotateEvents.includes('touchstart')) && !this.meta.moving);
+        const clickEvents = ['mousedown', 'touchstart'];
+
+        return !this.meta.moving && intersects(rotateEvents, clickEvents);
     }
 
     getUpdateImageFn = ({ container, canvas, rotateEvents, speed }) => {
@@ -202,13 +200,12 @@ export class JS360Canvas {
         const context = canvas.getContext('2d');
 
         return () => {
-            const img = document.createElement('img');
             const base64 = this.images[this.index > 0 ? this.index : (this.images.length + this.index)];
-
             if (!base64) return;
 
-            img.src = base64;
+            const img = document.createElement('img');
             img.onload = () => context.drawImage(img, 0, 0, width, height);
+            img.src = base64;
         };
     };
 }

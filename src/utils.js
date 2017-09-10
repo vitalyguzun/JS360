@@ -1,6 +1,5 @@
-export function getXFn(container) {
-    const rect = container.getBoundingClientRect();
-    const { left } = rect;
+export const getXFn = (container) => {
+    const { left } = container.getBoundingClientRect();
 
     return (x) => x - left;
 }
@@ -20,3 +19,19 @@ export const httpGet = (url) => {
         xhr.send();
     });
 };
+
+export const getTarget = (target) => {
+    if (typeof target === 'string') {
+        return document.querySelectorAll(target);
+    } else if (typeof target === 'object' && target.length) {
+        return target;
+    } else if (typeof target === 'object' && !target.length) {
+        return [target];
+    }
+
+    return undefined;
+}
+
+export const intersects = (first = [], second = []) => {
+    return first.some((el) => second.includes(el));
+}

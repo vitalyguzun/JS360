@@ -1,4 +1,5 @@
 import { JS360Canvas } from './js360Canvas';
+import { getTarget } from './utils';
 
 export class JS360 {
     constructor(options) {
@@ -7,16 +8,7 @@ export class JS360 {
     }
 
     render() {
-        const { target } = this.props;
-        let targets = [];
-
-        if (typeof target === 'string') {
-            targets = document.querySelectorAll(target);
-        } else if (typeof target === 'object' && target.length) {
-            targets = target;
-        } else if (typeof target === 'object' && !target.length) {
-            targets = [target];
-        }
+        const targets = getTarget(this.props.target);
 
         targets.forEach((elem) => {
             const { url, retinaPrefix } = elem.dataset;
