@@ -18,6 +18,7 @@ export class JS360Canvas {
             },
             height: elem.clientHeight || 180,
             loadEvents: JSON.parse(loadEvents).length ? JSON.parse(loadEvents) : LOAD_EVENTS,
+            preloader: false,
             retinaUrl: window.devicePixelRatio === 2 ? (retinaUrl || datasetRest.retinaUrl || '') : '',
             rotateEvents: JSON.parse(rotateEvents).length ? JSON.parse(rotateEvents) : ROTATE_EVENTS,
             speed: (Math.floor((speed || datasetRest.speed || 1) * 100) / 100),
@@ -108,13 +109,14 @@ export class JS360Canvas {
     };
 
     load = (event) => {
-        const { baseUrl, url, width, retinaUrl, autoPlay } = this.props;
+        const { autoPlay, baseUrl, preloader, retinaUrl, url, width } = this.props;
 
         if (url && !this.meta.success && !this.meta.pending) {
             const path = [baseUrl, retinaUrl, url].filter(path => path).join('/');
             this.meta.pending = true;
 
-            this.addLoader();
+            if (preloader) this.addLoader();
+
             httpGet(path).then((images) => {
                 this.step = Math.floor((width / images.length) * 1000) / 1000;
                 this.images = images;
@@ -146,7 +148,9 @@ export class JS360Canvas {
     }
 
     removeLoader = () => {
-        const { container } = this.props;
+        const { container, preloader } = this.props;
+        if (!preloader) return;
+
         container.classList.remove('is-pending');
         container.querySelector('.loader').remove();
     }

@@ -70,7 +70,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 1);
+/******/ 	return __webpack_require__(__webpack_require__.s = 2);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -81,9 +81,58 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 Object.defineProperty(exports, "__esModule", {
-  value: true
+    value: true
 });
-var LOAD = exports.LOAD = 'LOAD';
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+var getXFn = exports.getXFn = function getXFn(container) {
+    var _container$getBoundin = container.getBoundingClientRect(),
+        left = _container$getBoundin.left;
+
+    return function (x) {
+        return x - left;
+    };
+};
+
+var httpGet = exports.httpGet = function httpGet(url) {
+    return new Promise(function (resolve) {
+        var xhr = new XMLHttpRequest();
+
+        xhr.onload = function () {
+            var reader = new FileReader();
+            reader.readAsText(xhr.response);
+            reader.onloadend = function () {
+                return resolve(JSON.parse(reader.result));
+            };
+        };
+
+        xhr.open('GET', url);
+        xhr.responseType = 'blob';
+        xhr.send();
+    });
+};
+
+var getTarget = exports.getTarget = function getTarget(target) {
+    if (typeof target === 'string') {
+        return document.querySelectorAll(target);
+    } else if ((typeof target === 'undefined' ? 'undefined' : _typeof(target)) === 'object' && target.length) {
+        return target;
+    } else if ((typeof target === 'undefined' ? 'undefined' : _typeof(target)) === 'object' && !target.length) {
+        return [target];
+    }
+
+    return undefined;
+};
+
+var intersects = exports.intersects = function intersects() {
+    var first = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
+    var second = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
+
+    return first.some(function (el) {
+        return second.includes(el);
+    });
+};
 
 /***/ }),
 /* 1 */
@@ -95,8 +144,20 @@ var LOAD = exports.LOAD = 'LOAD';
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+var LOAD = exports.LOAD = 'LOAD';
 
-var _js = __webpack_require__(2);
+/***/ }),
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _js = __webpack_require__(3);
 
 Object.keys(_js).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -109,7 +170,7 @@ Object.keys(_js).forEach(function (key) {
 });
 
 /***/ }),
-/* 2 */
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -120,13 +181,13 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.JS360 = undefined;
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _js360Canvas = __webpack_require__(3);
+var _js360Canvas = __webpack_require__(4);
+
+var _utils = __webpack_require__(0);
 
 function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
 
@@ -145,17 +206,7 @@ var JS360 = exports.JS360 = function () {
         value: function render() {
             var _this = this;
 
-            var target = this.props.target;
-
-            var targets = [];
-
-            if (typeof target === 'string') {
-                targets = document.querySelectorAll(target);
-            } else if ((typeof target === 'undefined' ? 'undefined' : _typeof(target)) === 'object' && target.length) {
-                targets = target;
-            } else if ((typeof target === 'undefined' ? 'undefined' : _typeof(target)) === 'object' && !target.length) {
-                targets = [target];
-            }
+            var targets = (0, _utils.getTarget)(this.props.target);
 
             targets.forEach(function (elem) {
                 var _elem$dataset = elem.dataset,
@@ -176,7 +227,7 @@ var JS360 = exports.JS360 = function () {
 }();
 
 /***/ }),
-/* 3 */
+/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -191,11 +242,11 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _utils = __webpack_require__(4);
+var _utils = __webpack_require__(0);
 
 var _js360Controls = __webpack_require__(5);
 
-var _constants = __webpack_require__(0);
+var _constants = __webpack_require__(1);
 
 __webpack_require__(6);
 
@@ -209,10 +260,10 @@ var ROTATE_EVENTS = ['mousedown'];
 var JS360Canvas = exports.JS360Canvas = function () {
     function JS360Canvas(_ref) {
         var elem = _ref.elem,
-            retinaPrefix = _ref.retinaPrefix,
             speed = _ref.speed,
             controls = _ref.controls,
-            rest = _objectWithoutProperties(_ref, ['elem', 'retinaPrefix', 'speed', 'controls']);
+            retinaUrl = _ref.retinaUrl,
+            propsRest = _objectWithoutProperties(_ref, ['elem', 'speed', 'controls', 'retinaUrl']);
 
         _classCallCheck(this, JS360Canvas);
 
@@ -222,25 +273,23 @@ var JS360Canvas = exports.JS360Canvas = function () {
             _elem$dataset$loadEve = _elem$dataset.loadEvents,
             loadEvents = _elem$dataset$loadEve === undefined ? '[]' : _elem$dataset$loadEve,
             _elem$dataset$rotateE = _elem$dataset.rotateEvents,
-            rotateEvents = _elem$dataset$rotateE === undefined ? '[]' : _elem$dataset$rotateE;
-
+            rotateEvents = _elem$dataset$rotateE === undefined ? '[]' : _elem$dataset$rotateE,
+            datasetRest = _objectWithoutProperties(_elem$dataset, ['loadEvents', 'rotateEvents']);
 
         this.props = _extends({
-            retinaPrefix: window.devicePixelRatio === 2 ? retinaPrefix : '',
-            container: elem,
             canvas: document.createElement('canvas'),
-            width: elem.clientWidth || 320,
-            height: elem.clientHeight || 180,
-            preview: elem.dataset.preview,
-            loadEvents: JSON.parse(loadEvents).length ? JSON.parse(loadEvents) : LOAD_EVENTS,
-            rotateEvents: JSON.parse(rotateEvents).length ? JSON.parse(rotateEvents) : ROTATE_EVENTS,
-            url: elem.dataset.url,
-            baseUrl: elem.dataset.baseUrl,
-            speed: Math.floor((elem.dataset.speed || speed || 1) * 100) / 100,
+            container: elem,
             controls: {
                 load: controls && controls.load ? document.createElement('div') : null
-            }
-        }, rest);
+            },
+            height: elem.clientHeight || 180,
+            loadEvents: JSON.parse(loadEvents).length ? JSON.parse(loadEvents) : LOAD_EVENTS,
+            preloader: false,
+            retinaUrl: window.devicePixelRatio === 2 ? retinaUrl || datasetRest.retinaUrl || '' : '',
+            rotateEvents: JSON.parse(rotateEvents).length ? JSON.parse(rotateEvents) : ROTATE_EVENTS,
+            speed: Math.floor((speed || datasetRest.speed || 1) * 100) / 100,
+            width: elem.clientWidth || 320
+        }, datasetRest, propsRest);
 
         this.meta = {
             success: false,
@@ -275,6 +324,7 @@ var JS360Canvas = exports.JS360Canvas = function () {
             canvas.setAttribute('width', width + 'px');
             canvas.setAttribute('height', height + 'px');
             container.style.position = 'relative';
+
             this.getPreviewImg();
             this.initControls();
             this.addListeners();
@@ -287,11 +337,9 @@ var JS360Canvas = exports.JS360Canvas = function () {
                 canvas = _props2.canvas,
                 controls = _props2.controls;
 
+
             container.append(canvas);
-
-            if (!controls.load) return;
-
-            container.append(controls.load);
+            container.append(controls.load || '');
         }
     }, {
         key: 'index',
@@ -313,11 +361,13 @@ var JS360Canvas = exports.JS360Canvas = function () {
             return Number.isNaN(index) ? 0 : index;
         }
     }, {
-        key: 'isRotatable',
+        key: 'isRotateOnMousemove',
         get: function get() {
             var rotateEvents = this.props.rotateEvents;
 
-            return !((rotateEvents.includes('mousedown') || rotateEvents.includes('touchstart')) && !this.meta.moving);
+            var clickEvents = ['mousedown', 'touchstart'];
+
+            return !this.meta.moving && (0, _utils.intersects)(rotateEvents, clickEvents);
         }
     }]);
 
@@ -333,7 +383,6 @@ var _initialiseProps = function _initialiseProps() {
             width = _props3.width,
             height = _props3.height,
             preview = _props3.preview;
-
 
         var context = canvas.getContext('2d');
         var img = document.createElement('img');
@@ -366,7 +415,7 @@ var _initialiseProps = function _initialiseProps() {
     };
 
     this.move = function (event) {
-        if (!_this.isRotatable) return;
+        if (_this.isRotateOnMousemove) return;
 
         _this.meta.moving = true;
         _this.updateClientX(event);
@@ -388,20 +437,22 @@ var _initialiseProps = function _initialiseProps() {
 
     this.load = function (event) {
         var _props5 = _this.props,
+            autoPlay = _props5.autoPlay,
             baseUrl = _props5.baseUrl,
+            preloader = _props5.preloader,
+            retinaUrl = _props5.retinaUrl,
             url = _props5.url,
-            width = _props5.width,
-            retinaPrefix = _props5.retinaPrefix,
-            autoPlay = _props5.autoPlay;
+            width = _props5.width;
 
 
         if (url && !_this.meta.success && !_this.meta.pending) {
-            var path = [baseUrl, retinaPrefix, url].filter(function (path) {
+            var path = [baseUrl, retinaUrl, url].filter(function (path) {
                 return path;
             }).join('/');
             _this.meta.pending = true;
 
-            _this.addLoader();
+            if (preloader) _this.addLoader();
+
             (0, _utils.httpGet)(path).then(function (images) {
                 _this.step = Math.floor(width / images.length * 1000) / 1000;
                 _this.images = images;
@@ -434,7 +485,11 @@ var _initialiseProps = function _initialiseProps() {
     };
 
     this.removeLoader = function () {
-        var container = _this.props.container;
+        var _props6 = _this.props,
+            container = _props6.container,
+            preloader = _props6.preloader;
+
+        if (!preloader) return;
 
         container.classList.remove('is-pending');
         container.querySelector('.loader').remove();
@@ -479,56 +534,16 @@ var _initialiseProps = function _initialiseProps() {
         var context = canvas.getContext('2d');
 
         return function () {
-            var img = document.createElement('img');
             var base64 = _this.images[_this.index > 0 ? _this.index : _this.images.length + _this.index];
-
             if (!base64) return;
 
-            img.src = base64;
+            var img = document.createElement('img');
             img.onload = function () {
                 return context.drawImage(img, 0, 0, width, height);
             };
+            img.src = base64;
         };
     };
-};
-
-/***/ }),
-/* 4 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-exports.getXFn = getXFn;
-function getXFn(container) {
-    var rect = container.getBoundingClientRect();
-    var left = rect.left;
-
-
-    return function (x) {
-        return x - left;
-    };
-}
-
-var httpGet = exports.httpGet = function httpGet(url) {
-    return new Promise(function (resolve) {
-        var xhr = new XMLHttpRequest();
-
-        xhr.onload = function () {
-            var reader = new FileReader();
-            reader.readAsText(xhr.response);
-            reader.onloadend = function () {
-                return resolve(JSON.parse(reader.result));
-            };
-        };
-
-        xhr.open('GET', url);
-        xhr.responseType = 'blob';
-        xhr.send();
-    });
 };
 
 /***/ }),
@@ -545,7 +560,7 @@ exports.Controls = undefined;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _constants = __webpack_require__(0);
+var _constants = __webpack_require__(1);
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
