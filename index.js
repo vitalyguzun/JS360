@@ -134,6 +134,15 @@ var intersects = exports.intersects = function intersects() {
     });
 };
 
+var isEmpty = exports.isEmpty = function isEmpty(obj) {
+    var result = true;
+    for (var val in obj) {
+        result = !!obj[val] ? false : result;
+    }
+
+    return result;
+};
+
 /***/ }),
 /* 1 */
 /***/ (function(module, exports, __webpack_require__) {
@@ -145,6 +154,8 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 var LOAD = exports.LOAD = 'LOAD';
+var PAUSE = exports.PAUSE = 'PAUSE';
+var PLAY = exports.PLAY = 'PLAY';
 
 /***/ }),
 /* 2 */
@@ -256,14 +267,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var LOAD_EVENTS = ['mousemove'];
 var ROTATE_EVENTS = ['mousedown'];
+var controlTypes = {
+    load: _constants.LOAD,
+    pause: _constants.PAUSE
+};
 
 var JS360Canvas = exports.JS360Canvas = function () {
     function JS360Canvas(_ref) {
         var elem = _ref.elem,
             speed = _ref.speed,
-            controls = _ref.controls,
             retinaUrl = _ref.retinaUrl,
-            propsRest = _objectWithoutProperties(_ref, ['elem', 'speed', 'controls', 'retinaUrl']);
+            propsRest = _objectWithoutProperties(_ref, ['elem', 'speed', 'retinaUrl']);
 
         _classCallCheck(this, JS360Canvas);
 
@@ -279,12 +293,8 @@ var JS360Canvas = exports.JS360Canvas = function () {
         this.props = _extends({
             canvas: document.createElement('canvas'),
             container: elem,
-            controls: {
-                load: controls && controls.load ? document.createElement('div') : null
-            },
             height: elem.clientHeight || 180,
             loadEvents: JSON.parse(loadEvents).length ? JSON.parse(loadEvents) : LOAD_EVENTS,
-            preloader: false,
             retinaUrl: window.devicePixelRatio === 2 ? retinaUrl || datasetRest.retinaUrl || '' : '',
             rotateEvents: JSON.parse(rotateEvents).length ? JSON.parse(rotateEvents) : ROTATE_EVENTS,
             speed: Math.floor((speed || datasetRest.speed || 1) * 100) / 100,
@@ -294,15 +304,16 @@ var JS360Canvas = exports.JS360Canvas = function () {
         this.meta = {
             success: false,
             pending: false,
-            moving: false
+            moving: false,
+            paused: false
         };
 
         this.interval = null;
         this.clientX = 0;
         this.delta = null;
         this.step = null;
-        this.controls = {};
         this.images = [];
+        this.controls = {};
 
         this.updateImage = this.getUpdateImageFn(this.props);
         this.getX = (0, _utils.getXFn)(this.props.container);
@@ -337,9 +348,16 @@ var JS360Canvas = exports.JS360Canvas = function () {
                 canvas = _props2.canvas,
                 controls = _props2.controls;
 
-
             container.append(canvas);
-            container.append(controls.load || '');
+
+            if ((0, _utils.isEmpty)(controls)) return;
+
+            var controlsContainer = document.createElement('div');
+            controlsContainer.classList.add('js360-controls');
+
+            controlsContainer.append(this.controls.load || '');
+            controlsContainer.append(this.controls.pause || '');
+            container.append(controlsContainer);
         }
     }, {
         key: 'index',
@@ -396,11 +414,10 @@ var _initialiseProps = function _initialiseProps() {
     this.addListeners = function () {
         var _props4 = _this.props,
             container = _props4.container,
-            controls = _props4.controls,
             loadEvents = _props4.loadEvents,
             rotateEvents = _props4.rotateEvents;
 
-        var loadTarget = controls.load || container;
+        var loadTarget = _this.controls.load || container;
 
         rotateEvents.forEach(function (event) {
             return container.addEventListener(event, _this.rotate);
@@ -435,6 +452,13 @@ var _initialiseProps = function _initialiseProps() {
         _this.meta.moving = true;
     };
 
+    this.togglePlay = function () {
+        _this.meta.paused = !_this.meta.paused;
+
+        var state = _this.meta.paused ? _constants.PLAY : _constants.PAUSE;
+        _this.controls.pause.innerHTML = new _js360Controls.Controls(state).render();
+    };
+
     this.load = function (event) {
         var _props5 = _this.props,
             autoPlay = _props5.autoPlay,
@@ -454,20 +478,22 @@ var _initialiseProps = function _initialiseProps() {
             if (preloader) _this.addLoader();
 
             (0, _utils.httpGet)(path).then(function (images) {
-                _this.step = Math.floor(width / images.length * 1000) / 1000;
-                _this.images = images;
                 _this.meta.success = true;
                 _this.meta.pending = false;
+
+                _this.step = Math.floor(width / images.length * 1000) / 1000;
+                _this.images = images;
+                _this.showControls('pause');
                 _this.removeLoader();
 
-                if (autoPlay) _this.play();
+                if (autoPlay) _this.startAutoPlay();
             });
         }
     };
 
-    this.play = function () {
+    this.startAutoPlay = function () {
         _this.interval = setInterval(function () {
-            if (_this.meta.moving) return;
+            if (_this.meta.moving || _this.meta.paused) return;
 
             _this.delta--;
             _this.updateImage();
@@ -498,11 +524,28 @@ var _initialiseProps = function _initialiseProps() {
     this.initControls = function () {
         var controls = _this.props.controls;
 
+        if ((0, _utils.isEmpty)(controls)) return;
 
-        if (!controls.load) return;
+        for (var control in controls) {
+            var button = controlTypes[control];
 
-        controls.load.classList.add('js360-load');
-        controls.load.innerHTML = new _js360Controls.Controls(_constants.LOAD).render();
+            if (button) {
+                _this.controls[control] = document.createElement('div');
+                _this.controls[control].classList.add('js360-' + control, 'js360-control');
+                _this.controls[control].innerHTML = new _js360Controls.Controls(controlTypes[control]).render();
+
+                if (control === 'pause') {
+                    _this.controls[control].addEventListener('click', _this.togglePlay);
+                }
+            }
+        }
+    };
+
+    this.showControls = function (type) {
+        var control = _this.props.container.querySelector('.js360-' + type);
+        if (!control) return;
+
+        control.classList.add('visible');
     };
 
     this.updateClientX = function (_ref2) {
@@ -579,7 +622,11 @@ var Controls = exports.Controls = function () {
 
             switch (type) {
                 case _constants.LOAD:
-                    return '<?xml version="1.0" encoding="utf-8"?>\n                    <!-- Generator: Adobe Illustrator 18.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->\n                    <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n                    <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"\n                    \t width="300px" height="300px" viewBox="45 45 420 420" enable-background="new 0 0 500 500" xml:space="preserve">\n                    <g>\n                    \t<g>\n                    \t\t<path fill="#010101" d="M195.6,260.1c1.9,2.7,5.1,4.6,8.6,4.6c4.4,0,8.7-3.4,8.7-8.4c0-4.8-4-8.5-9.1-8.5c-1.9,0-3.8,0.5-5.6,1.3\n                    \t\t\tv-5.3l8.7-10.3h-15.5v-8h28.2v5.3l-8.4,10.3c6.4,2.5,10.7,8,10.7,15c0,9.8-7.7,16.4-17.3,16.4c-5.8,0-11.3-2.6-15.4-7.2\n                    \t\t\tL195.6,260.1z"/>\n                    \t\t<path fill="#010101" d="M253.9,225.6l-8.7,14.8h0.6c8.8,0,16.2,6.7,16.2,16c0,9-7.5,16.3-16.5,16.3c-8.7,0-17-6.2-17-15.8\n                    \t\t\tc0-4.6,2.1-8.7,4.6-12.8l10.9-18.4H253.9z M237.1,256.8c0,4.4,3.7,7.9,8.2,7.9c4.6,0,7.8-3.6,7.8-8.1c0-4.4-3.3-8.3-8.3-8.3\n                    \t\t\tc-1.7,0-3.2,0.3-5,1.1C238.7,251.2,237.1,253.7,237.1,256.8z"/>\n                    \t\t<path fill="#010101" d="M284.6,225c11.9,0,16.2,10.7,16.2,23.9c0,13.2-4.4,23.9-16.2,23.9c-11.9,0-16.2-10.7-16.2-23.9\n                    \t\t\tC268.3,235.6,272.7,225,284.6,225z M284.6,232.9c-5.4,0-7.3,7.2-7.3,15.9c0,8.7,1.9,15.9,7.3,15.9c5.4,0,7.3-7.2,7.3-15.9\n                    \t\t\tC291.8,240.1,289.9,232.9,284.6,232.9z"/>\n                    \t\t<path fill="#010101" d="M316.4,221.6c4,0,7.3,3.2,7.3,7.3c0,4-3.2,7.3-7.3,7.3c-4,0-7.3-3.2-7.3-7.3\n                    \t\t\tC309.1,224.9,312.3,221.6,316.4,221.6z M316.4,230.9c1.1,0,2-0.9,2-2c0-1.1-0.9-2-2-2c-1.1,0-2,0.9-2,2\n                    \t\t\tC314.4,230.1,315.3,230.9,316.4,230.9z"/>\n                    \t</g>\n                    \t<g>\n                    \t\t<path fill="#010101" d="M250.5,376.5c-70,0-127-57-127-127s57-127,127-127c28.8,0,56,9.4,78.6,27.2l-7.7,9.8\n                    \t\t\tc-20.4-16-44.9-24.5-70.8-24.5C187.3,135,136,186.3,136,249.5S187.3,364,250.5,364c63.2,0,114.5-51.4,114.5-114.5\n                    \t\t\tc0-26.7-9.4-52.7-26.5-73.3l9.6-8c18.9,22.7,29.4,51.6,29.4,81.2C377.5,319.5,320.5,376.5,250.5,376.5z"/>\n                    \t\t<polygon fill="#010101" points="331.8,160.1 335.8,198.8 369.7,172.6 \t\t"/>\n                    \t</g>\n                    </g>\n                    </svg>\n                ';
+                    return '\n                    <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"\n                    \t width="300px" height="300px" viewBox="45 45 420 420" enable-background="new 0 0 500 500" xml:space="preserve">\n                        <g>\n                        \t<g>\n                        \t\t<path fill="#010101" d="M195.6,260.1c1.9,2.7,5.1,4.6,8.6,4.6c4.4,0,8.7-3.4,8.7-8.4c0-4.8-4-8.5-9.1-8.5c-1.9,0-3.8,0.5-5.6,1.3\n                        \t\t\tv-5.3l8.7-10.3h-15.5v-8h28.2v5.3l-8.4,10.3c6.4,2.5,10.7,8,10.7,15c0,9.8-7.7,16.4-17.3,16.4c-5.8,0-11.3-2.6-15.4-7.2\n                        \t\t\tL195.6,260.1z"/>\n                        \t\t<path fill="#010101" d="M253.9,225.6l-8.7,14.8h0.6c8.8,0,16.2,6.7,16.2,16c0,9-7.5,16.3-16.5,16.3c-8.7,0-17-6.2-17-15.8\n                        \t\t\tc0-4.6,2.1-8.7,4.6-12.8l10.9-18.4H253.9z M237.1,256.8c0,4.4,3.7,7.9,8.2,7.9c4.6,0,7.8-3.6,7.8-8.1c0-4.4-3.3-8.3-8.3-8.3\n                        \t\t\tc-1.7,0-3.2,0.3-5,1.1C238.7,251.2,237.1,253.7,237.1,256.8z"/>\n                        \t\t<path fill="#010101" d="M284.6,225c11.9,0,16.2,10.7,16.2,23.9c0,13.2-4.4,23.9-16.2,23.9c-11.9,0-16.2-10.7-16.2-23.9\n                        \t\t\tC268.3,235.6,272.7,225,284.6,225z M284.6,232.9c-5.4,0-7.3,7.2-7.3,15.9c0,8.7,1.9,15.9,7.3,15.9c5.4,0,7.3-7.2,7.3-15.9\n                        \t\t\tC291.8,240.1,289.9,232.9,284.6,232.9z"/>\n                        \t\t<path fill="#010101" d="M316.4,221.6c4,0,7.3,3.2,7.3,7.3c0,4-3.2,7.3-7.3,7.3c-4,0-7.3-3.2-7.3-7.3\n                        \t\t\tC309.1,224.9,312.3,221.6,316.4,221.6z M316.4,230.9c1.1,0,2-0.9,2-2c0-1.1-0.9-2-2-2c-1.1,0-2,0.9-2,2\n                        \t\t\tC314.4,230.1,315.3,230.9,316.4,230.9z"/>\n                        \t</g>\n                        \t<g>\n                        \t\t<path fill="#010101" d="M250.5,376.5c-70,0-127-57-127-127s57-127,127-127c28.8,0,56,9.4,78.6,27.2l-7.7,9.8\n                        \t\t\tc-20.4-16-44.9-24.5-70.8-24.5C187.3,135,136,186.3,136,249.5S187.3,364,250.5,364c63.2,0,114.5-51.4,114.5-114.5\n                        \t\t\tc0-26.7-9.4-52.7-26.5-73.3l9.6-8c18.9,22.7,29.4,51.6,29.4,81.2C377.5,319.5,320.5,376.5,250.5,376.5z"/>\n                        \t\t<polygon fill="#010101" points="331.8,160.1 335.8,198.8 369.7,172.6 \t\t"/>\n                        \t</g>\n                        </g>\n                    </svg>\n                ';
+                case _constants.PAUSE:
+                    return '\n                    <svg fill="#000000" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">\n                        <path d="M6 19h2V5H6v14zm7-14v14h2V5h-4z"/>\n                        <path d="M0 0h24v24H0z" fill="none"/>\n                    </svg>\n                ';
+                case _constants.PLAY:
+                    return '\n                    <svg fill="#9E9E9E" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">\n                        <path d="M8 5v14l11-7z"/>\n                        <path d="M0 0h24v24H0z" fill="none"/>\n                    </svg>\n                ';
                 default:
                     return '<div></div>';
             }

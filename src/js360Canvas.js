@@ -1,24 +1,24 @@
-import { getXFn, httpGet, intersects } from './utils';
+import { getXFn, httpGet, intersects, isEmpty } from './utils';
 import { Controls } from './js360Controls';
-import { LOAD } from './constants';
+import { LOAD, PAUSE, PLAY } from './constants';
 import './js360.scss';
 
 const LOAD_EVENTS = ['mousemove'];
 const ROTATE_EVENTS = ['mousedown'];
+const controlTypes = {
+    load: LOAD,
+    pause: PAUSE
+}
 
 export class JS360Canvas {
-    constructor({ elem, speed, controls, retinaUrl, ...propsRest }) {
+    constructor({ elem, speed, retinaUrl, ...propsRest }) {
         const { loadEvents = '[]', rotateEvents = '[]', ...datasetRest } = elem.dataset;
 
         this.props = {
             canvas: document.createElement('canvas'),
             container: elem,
-            controls: {
-                load: controls && controls.load ? document.createElement('div') : null
-            },
             height: elem.clientHeight || 180,
             loadEvents: JSON.parse(loadEvents).length ? JSON.parse(loadEvents) : LOAD_EVENTS,
-            preloader: false,
             retinaUrl: window.devicePixelRatio === 2 ? (retinaUrl || datasetRest.retinaUrl || '') : '',
             rotateEvents: JSON.parse(rotateEvents).length ? JSON.parse(rotateEvents) : ROTATE_EVENTS,
             speed: (Math.floor((speed || datasetRest.speed || 1) * 100) / 100),
@@ -30,15 +30,16 @@ export class JS360Canvas {
         this.meta = {
             success: false,
             pending: false,
-            moving: false
+            moving: false,
+            paused: false
         }
 
         this.interval = null;
         this.clientX = 0;
         this.delta = null;
         this.step = null;
-        this.controls = {};
         this.images = [];
+        this.controls = {};
 
         this.updateImage = this.getUpdateImageFn(this.props);
         this.getX = getXFn(this.props.container);
@@ -61,9 +62,16 @@ export class JS360Canvas {
 
     render() {
         const { container, canvas, controls } = this.props;
-
         container.append(canvas);
-        container.append(controls.load || '');
+
+        if (isEmpty(controls)) return;
+
+        const controlsContainer = document.createElement('div');
+        controlsContainer.classList.add('js360-controls');
+
+        controlsContainer.append(this.controls.load || '');
+        controlsContainer.append(this.controls.pause || '');
+        container.append(controlsContainer);
     }
 
     getPreviewImg = () => {
@@ -76,8 +84,8 @@ export class JS360Canvas {
     }
 
     addListeners = () => {
-        const { container, controls, loadEvents, rotateEvents } = this.props;
-        const loadTarget = controls.load || container;
+        const { container, loadEvents, rotateEvents } = this.props;
+        const loadTarget = this.controls.load || container;
 
         rotateEvents.forEach((event) => container.addEventListener(event, this.rotate));
         loadEvents.forEach((event) => loadTarget.addEventListener(event, this.load));
@@ -108,6 +116,13 @@ export class JS360Canvas {
         this.meta.moving = true;
     };
 
+    togglePlay = () => {
+        this.meta.paused = !this.meta.paused;
+
+        const state = this.meta.paused ? PLAY : PAUSE;
+        this.controls.pause.innerHTML = new Controls(state).render();
+    }
+
     load = (event) => {
         const { autoPlay, baseUrl, preloader, retinaUrl, url, width } = this.props;
 
@@ -118,20 +133,22 @@ export class JS360Canvas {
             if (preloader) this.addLoader();
 
             httpGet(path).then((images) => {
-                this.step = Math.floor((width / images.length) * 1000) / 1000;
-                this.images = images;
                 this.meta.success = true;
                 this.meta.pending = false;
+
+                this.step = Math.floor((width / images.length) * 1000) / 1000;
+                this.images = images;
+                this.showControls('pause');
                 this.removeLoader();
 
-                if (autoPlay) this.play();
+                if (autoPlay) this.startAutoPlay();
             });
         }
     }
 
-    play = () => {
+    startAutoPlay = () => {
         this.interval = setInterval(() => {
-            if (this.meta.moving) return;
+            if (this.meta.moving || this.meta.paused) return;
 
             this.delta--;
             this.updateImage();
@@ -157,11 +174,28 @@ export class JS360Canvas {
 
     initControls = () => {
         const { controls } = this.props;
+        if (isEmpty(controls)) return;
 
-        if (!controls.load) return;
+        for (let control in controls) {
+            const button = controlTypes[control];
 
-        controls.load.classList.add('js360-load');
-        controls.load.innerHTML = new Controls(LOAD).render();
+            if (button) {
+                this.controls[control] = document.createElement('div');
+                this.controls[control].classList.add(`js360-${control}`, 'js360-control');
+                this.controls[control].innerHTML = new Controls(controlTypes[control]).render();
+
+                if (control === 'pause') {
+                    this.controls[control].addEventListener('click', this.togglePlay);
+                }
+            }
+        }
+    }
+
+    showControls = (type) => {
+        const control = this.props.container.querySelector(`.js360-${type}`);
+        if (!control) return;
+
+        control.classList.add('visible');
     }
 
     updateClientX = ({ type, changedTouches, clientX }) => {

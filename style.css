@@ -21,15 +21,26 @@
 
 .js360-container {
   line-height: 1em; }
-  .js360-container .js360-load {
+  .js360-container .js360-controls {
     position: absolute;
     bottom: 0px;
     left: 0px;
-    cursor: pointer; }
-    .js360-container .js360-load svg {
-      width: 60px;
-      height: 60px; }
-      .js360-container .js360-load svg path, .js360-container .js360-load svg polygon {
+    display: flex; }
+    .js360-container .js360-controls .js360-control {
+      cursor: pointer;
+      display: none; }
+      .js360-container .js360-controls .js360-control svg {
+        width: 35px;
+        height: 35px; }
+      .js360-container .js360-controls .js360-control.js360-load {
+        display: block; }
+        .js360-container .js360-controls .js360-control.js360-load svg path, .js360-container .js360-controls .js360-control.js360-load svg polygon {
+          transition: .3s; }
+        .js360-container .js360-controls .js360-control.js360-load:hover svg path, .js360-container .js360-controls .js360-control.js360-load:hover svg polygon {
+          fill: #b89f60; }
+      .js360-container .js360-controls .js360-control.js360-pause.visible, .js360-container .js360-controls .js360-control.js360-play.visible {
+        display: block; }
+      .js360-container .js360-controls .js360-control.js360-pause svg, .js360-container .js360-controls .js360-control.js360-play svg {
         transition: .3s; }
-    .js360-container .js360-load:hover svg path, .js360-container .js360-load:hover svg polygon {
-      fill: #b89f60; }
+      .js360-container .js360-controls .js360-control.js360-pause:hover svg, .js360-container .js360-controls .js360-control.js360-play:hover svg {
+        fill: #b89f60; }

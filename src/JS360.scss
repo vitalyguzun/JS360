@@ -23,24 +23,47 @@
 .js360-container {
     line-height: 1em;
 
-    .js360-load {
+    .js360-controls {
         position: absolute;
         bottom: 0px;
         left: 0px;
-        cursor: pointer;
+        display: flex;
 
-        svg {
-            width: 60px;
-            height: 60px;
+        .js360-control {
+            cursor: pointer;
+            display: none;
 
-            path, polygon {
-                transition: .3s;
-            }
-        }
-
-        &:hover {
             svg {
-                path, polygon {
+                width: 35px;
+                height: 35px;
+            }
+
+            &.js360-load {
+                display: block;
+
+                svg {
+                    path, polygon {
+                        transition: .3s;
+                    }
+                }
+
+                &:hover svg {
+                    path, polygon {
+                        fill: #b89f60;
+                    }
+                }
+            }
+
+            &.js360-pause, &.js360-play {
+                &.visible {
+                    display: block;
+                }
+
+                svg {
+                    transition: .3s;
+                }
+
+                &:hover svg {
                     fill: #b89f60;
                 }
             }

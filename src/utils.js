@@ -35,3 +35,10 @@ export const getTarget = (target) => {
 export const intersects = (first = [], second = []) => {
     return first.some((el) => second.includes(el));
 }
+
+export const isEmpty = (obj) => {
+    let result = true;
+    for (let val in obj) { result = !!obj[val] ? false : result; }
+
+    return result;
+}

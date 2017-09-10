@@ -13,6 +13,7 @@
   * [autoPlay](#autoplay-data-auto-play)
   * [baseUrl](#baseurl--data-base-url)
   * [controls.load](#controls--load-)
+  * [controls.pause](#controls--pause-)
   * [height](#height--data-height)
   * [loadEvents](#loadevents-data-load-events)
   * [preloader](#preloader-data-preloader)
@@ -141,14 +142,39 @@ js360.render();
 При одновременном указании `baseUrl && data-base-url` приоритет будет у `baseUrl`.  
 Массив закодированных изображений будет получен по адресу `http://my_second_rest/product.json`.
 
-* ## `controls: { load }`
+* ## controls: { load }
 type: **boolean**  
 обязательное: **нет**
 
 Определяет кнопку управления загрузкой, которая перехватит на себя событие loadEvent (`mousemove` по-умолчанию).  
-Если не определена - загрузка активируется через контейнер.
+Если не определена - загрузка активируется через контейнер.  
+Для корректной отрисовки, необходимо подключить `style.css`.
 
 ```js
+import 'js360/style.css';
+
+const js360 = new JS360({
+  baseUrl: 'http://my_rest',
+  target:  '.js360',
+  url:     'product.json',
+  controls: {
+    load: true
+  }
+});
+
+js360.render();
+```
+
+* ## controls: { pause }
+type: **boolean**  
+обязательное: **нет**
+
+Создает кнопку управления (пауза / старт) автоматическим просмотром.
+Для корректной отрисовки, необходимо подключить `style.css`.
+
+```js
+import 'js360/style.css';
+
 const js360 = new JS360({
   baseUrl: 'http://my_rest',
   target:  '.js360',
@@ -191,7 +217,7 @@ js360.render();
 * ## preloader || data-preloader
 type: **boolean**
 обязательное: **нет**
-по-умолчанию: **false**
+по-умолчанию: **undefined**
 
 Если `true` - в момент начала загрузки изображений в контейнер будет добавлен прелоадер.
 **Note:** Чтобы прелоадер корректно отрисовался, необходимо добавить файл `styles.css` из папки компонента.
