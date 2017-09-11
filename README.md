@@ -13,7 +13,7 @@
   * [autoPlay](#autoplay-data-auto-play)
   * [baseUrl](#baseurl--data-base-url)
   * [controls.load](#controls--load-)
-  * [controls.pause](#controls--pause-)
+  * [controls.play](#controls--play-)
   * [height](#height--data-height)
   * [loadEvents](#loadevents-data-load-events)
   * [preloader](#preloader-data-preloader)
@@ -165,11 +165,11 @@ const js360 = new JS360({
 js360.render();
 ```
 
-* ## controls: { pause }
+* ## controls: { play }
 type: **boolean**  
 обязательное: **нет**
 
-Создает кнопку управления (пауза / старт) автоматическим просмотром.
+Создает кнопку управления (старт / пауза) автоматическим просмотром.
 Для корректной отрисовки, необходимо подключить `style.css`.
 
 ```js
@@ -180,7 +180,7 @@ const js360 = new JS360({
   target:  '.js360',
   url:     'product.json',
   controls: {
-    load: true
+    play: true
   }
 });
 

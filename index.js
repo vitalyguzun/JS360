@@ -267,9 +267,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var LOAD_EVENTS = ['mousemove'];
 var ROTATE_EVENTS = ['mousedown'];
-var controlTypes = {
+var CONTROL_TYPES = {
     load: _constants.LOAD,
-    pause: _constants.PAUSE
+    play: _constants.PLAY
 };
 
 var JS360Canvas = exports.JS360Canvas = function () {
@@ -305,7 +305,7 @@ var JS360Canvas = exports.JS360Canvas = function () {
             success: false,
             pending: false,
             moving: false,
-            paused: false
+            paused: true
         };
 
         this.interval = null;
@@ -353,10 +353,11 @@ var JS360Canvas = exports.JS360Canvas = function () {
             if ((0, _utils.isEmpty)(controls)) return;
 
             var controlsContainer = document.createElement('div');
-            controlsContainer.classList.add('js360-controls');
+            for (var control in this.controls) {
+                controlsContainer.append(this.controls[control]);
+            }
 
-            controlsContainer.append(this.controls.load || '');
-            controlsContainer.append(this.controls.pause || '');
+            controlsContainer.classList.add('js360-controls');
             container.append(controlsContainer);
         }
     }, {
@@ -456,7 +457,7 @@ var _initialiseProps = function _initialiseProps() {
         _this.meta.paused = !_this.meta.paused;
 
         var state = _this.meta.paused ? _constants.PLAY : _constants.PAUSE;
-        _this.controls.pause.innerHTML = new _js360Controls.Controls(state).render();
+        _this.controls.play.innerHTML = new _js360Controls.Controls(state).render();
     };
 
     this.load = function (event) {
@@ -483,15 +484,19 @@ var _initialiseProps = function _initialiseProps() {
 
                 _this.step = Math.floor(width / images.length * 1000) / 1000;
                 _this.images = images;
-                _this.showControls('pause');
+                _this.showControls(['pause', 'play']);
                 _this.removeLoader();
 
-                if (autoPlay) _this.startAutoPlay();
+                if (autoPlay) {
+                    _this.meta.paused = false;
+                    _this.startAutoPlay();
+                }
             });
         }
     };
 
     this.startAutoPlay = function () {
+        clearInterval(_this.interval);
         _this.interval = setInterval(function () {
             if (_this.meta.moving || _this.meta.paused) return;
 
@@ -522,30 +527,37 @@ var _initialiseProps = function _initialiseProps() {
     };
 
     this.initControls = function () {
-        var controls = _this.props.controls;
+        var _props7 = _this.props,
+            autoPlay = _props7.autoPlay,
+            controls = _props7.controls;
 
         if ((0, _utils.isEmpty)(controls)) return;
 
         for (var control in controls) {
-            var button = controlTypes[control];
+            var button = control === 'play' && autoPlay ? _constants.PAUSE : CONTROL_TYPES[control];
 
             if (button) {
                 _this.controls[control] = document.createElement('div');
                 _this.controls[control].classList.add('js360-' + control, 'js360-control');
-                _this.controls[control].innerHTML = new _js360Controls.Controls(controlTypes[control]).render();
+                _this.controls[control].innerHTML = new _js360Controls.Controls(button).render();
 
-                if (control === 'pause') {
-                    _this.controls[control].addEventListener('click', _this.togglePlay);
+                if (control === 'play') {
+                    _this.controls[control].addEventListener('click', function () {
+                        _this.togglePlay();
+                        if (!_this.interval) _this.startAutoPlay();
+                    });
                 }
             }
         }
     };
 
-    this.showControls = function (type) {
-        var control = _this.props.container.querySelector('.js360-' + type);
-        if (!control) return;
+    this.showControls = function (types) {
+        types.forEach(function (type) {
+            var control = _this.props.container.querySelector('.js360-' + type);
+            if (!control) return;
 
-        control.classList.add('visible');
+            control.classList.add('visible');
+        });
     };
 
     this.updateClientX = function (_ref2) {
