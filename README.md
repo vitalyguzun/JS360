@@ -23,6 +23,12 @@
     * [onPlayStart](#onautoplaystart)
     * [onPlay](#onplay)
     * [onPlayEnd](#onplayend)
+  * [Flags](#flags)
+    * [isLoaded](#isloaded)
+    * [isPending](#ispending)
+    * [isMoving](#ismoving)
+    * [isStoped](#isstoped)
+    * [isPlayed](#isplayed)
   * [Options](#options)
     * [autoPlay](#autoplay-data-auto-play)
     * [baseUrl](#baseurl--data-base-url)
@@ -300,6 +306,75 @@ js360.render();
 ```
 
 Остановка автопросмотра вызывает событие `onPlayEnd`.
+
+# Flags
+
+* ## isLoaded
+type: **function**
+
+```js
+const js360 = new JS360({ target:  document.querySelectorAll('.js360') });
+
+js360.render();
+js360.isLoaded();
+```
+
+`false` - изображения не загружены  
+`true` - изображения загружены
+
+
+* ## isPending
+type: **function**
+
+```js
+const js360 = new JS360({ target:  document.querySelectorAll('.js360') });
+
+js360.render();
+js360.isPending();
+```
+
+`false` - изображения не загружаются в данный момент  
+`true` - изображения загружаются в данный момент
+
+
+* ## isMoving
+type: **function**
+
+```js
+const js360 = new JS360({ target:  document.querySelectorAll('.js360') });
+
+js360.render();
+js360.isMoving();
+```
+
+`false` - ручной разворот подели не происходит  
+`true` - происходит ручной поворот модели
+
+* ## isStoped
+type: **function**
+
+```js
+const js360 = new JS360({ target:  document.querySelectorAll('.js360') });
+
+js360.render();
+js360.isStoped();
+```
+
+`false` - автопросмотр включен  
+`true` - автопросмотр выключен
+
+* ## isPlayed
+type: **function**
+
+```js
+const js360 = new JS360({ target:  document.querySelectorAll('.js360') });
+
+js360.render();
+js360.isPlayed();
+```
+
+`false` - автопросмотр выключен  
+`true` - автопросмотр включен
 
 # Options
 
