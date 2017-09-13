@@ -10,25 +10,34 @@
 * [Быстрый старт](#Быстрый-старт)
 * [Возможности](#Возможности)
 * [API](#api)
-  * [load](#loadindex)
-  * [play](#playindex)
-  * [stop](#stopindex)
-  * [toggle](#toggleindex)
-* [Options](#options)
-  * [autoPlay](#autoplay-data-auto-play)
-  * [baseUrl](#baseurl--data-base-url)
-  * [controls.load](#controls--load-)
-  * [controls.play](#controls--play-)
-  * [height](#height--data-height)
-  * [loadEvents](#loadevents-data-load-events)
-  * [preloader](#preloader-data-preloader)
-  * [preview](#preview-data-preview)
-  * [retinaUrl](#retinaurl-data-retina-url)
-  * [rotateEvents](#rotateevents-data-rotate-events)
-  * [speed](#speed-data-speed)
-  * [target](#target)
-  * [url](#url-data-url)
-  * [width](#width--data-width)
+  * [Methods](#methods)
+    * [load](#loadindex)
+    * [play](#playindex)
+    * [stop](#stopindex)
+    * [toggle](#toggleindex)
+  * [Events](#events)
+    * [onLoad](#onload)
+    * [onRotateStart](#onrotatestart)
+    * [onRotate](#onrotate)
+    * [onRotateEnd](#onrotateend)
+    * [onPlayStart](#onautoplaystart)
+    * [onPlay](#onplay)
+    * [onPlayEnd](#onplayend)
+  * [Options](#options)
+    * [autoPlay](#autoplay-data-auto-play)
+    * [baseUrl](#baseurl--data-base-url)
+    * [controls.load](#controls--load-)
+    * [controls.play](#controls--play-)
+    * [height](#height--data-height)
+    * [loadEvents](#loadevents-data-load-events)
+    * [preloader](#preloader-data-preloader)
+    * [preview](#preview-data-preview)
+    * [retinaUrl](#retinaurl-data-retina-url)
+    * [rotateEvents](#rotateevents-data-rotate-events)
+    * [speed](#speed-data-speed)
+    * [target](#target)
+    * [url](#url-data-url)
+    * [width](#width--data-width)
 
 
 ### Входящие данные (REST output)
@@ -101,6 +110,196 @@ js360.render();
 * Автопросмотр после загрузки
 * Возможность включить и выключить кнопки управления (загрузка / остановка / ускорение)
 * Много чего в планах, разработка ведется
+
+# API
+
+# Methods
+
+* ## load([index])
+type: **([index]) => Promise.all**
+
+Ручная загрузка массива изображений. На вход метод получает массив индексов, определяющий для каких именно кансасов нужно выгрузить изображения. Если не передано ничего, изображения загружаются для всех кансасов объекта.
+Возвращает промис, который резолвится, когда все запрошенные массивы получены.
+
+```js
+const js360 = new JS360({
+  baseUrl: 'http://my_rest',
+  target:  document.querySelectorAll('.js360')
+});
+
+js360.render();
+js360.load().then(() => {
+    // some code ...
+    js360.play();
+});
+```
+
+* ## play([index])
+type: **[index]**
+
+Ручной запуск автопросмотра. Метод получает на вход массив индексов, определяющий для каких именно кансасов нужно запустить просмотр. Если не передано ничего, просмотр запускается для всех кансасов объекта.
+
+```js
+const js360 = new JS360({
+  baseUrl: 'http://my_rest',
+  target:  document.querySelectorAll('.js360')
+});
+
+js360.render();
+js360.load().then(() => {
+    // some code ...
+    js360.play();
+});
+```
+
+* ## stop([index])
+type: **[index]**
+
+Ручная остановка автопросмотра. Метод получает на вход массив индексов, определяющий для каких именно кансасов нужно остановить просмотр. Если не передано ничего, просмотр останавливается для всех кансасов объекта.
+
+```js
+const js360 = new JS360({
+  baseUrl: 'http://my_rest',
+  target:  document.querySelectorAll('.js360'),
+  autoPlay: true
+});
+
+js360.render();
+
+setTimeout(() => {
+    js360.stop([3]);
+}, 2000);
+```
+
+Через 2 секунды после инициализации, просмотр будет остановлен для канваса с индексом 3.
+
+* ## toggle([index])
+type: **[index]**
+
+Переключение режимов play / stop. Также получает на вход массив индексов, к которым нужно применить метод. Если ничего не передано - метод будет передан для всех канвасов данного объекта.
+
+```js
+const js360 = new JS360({
+  baseUrl: 'http://my_rest',
+  target:  document.querySelectorAll('.js360'),
+  autoPlay: true
+});
+
+js360.render();
+
+setTimeout(() => {
+    js360.toggle();
+
+    setTimeout(() => {
+        js360.toggle();
+    }, 2000);
+}, 2000);
+```
+
+Через 2 секунды после инициализации, просмотр будет остановлен для всех канвасов. И будет запущен новый таймер на 2 секунды, для возобновления автопросмотра.
+
+# Events
+
+* ## onLoad
+type: **function**
+
+Вызывается после удачной загрузки изображений.
+
+```js
+const js360 = new JS360({
+  baseUrl: 'http://my_rest',
+  target:  document.querySelectorAll('.js360'),
+  onLoad: () => console.log('images is loaded')
+});
+
+js360.render();
+```
+
+Успешная загрузка контента вызовет функцию `onLoad`.
+
+* ## onRotateStart
+type: **function**
+
+```js
+const js360 = new JS360({
+  target:  document.querySelectorAll('.js360'),
+  onRotateStart: () => console.log('rotate is started')
+});
+
+js360.render();
+```
+
+Активация прокрутки мышью вызовет функцию `onRotateStart`.
+
+* ## onRotate
+type: **function**
+
+```js
+const js360 = new JS360({
+  target:  document.querySelectorAll('.js360'),
+  onRotate: () => console.log('rotating happens now')
+});
+
+js360.render();
+```
+
+Каждый поворот модели вызовет функцию `onRotate`.
+
+* ## onRotateEnd
+type: **function**
+
+```js
+const js360 = new JS360({
+  target:  document.querySelectorAll('.js360'),
+  onRotateEnd: () => console.log('rotating is finished')
+});
+
+js360.render();
+```
+
+По завершению поворота модели будет вызвано событие `onRotateEnd`.
+
+* ## onPlayStart
+type: **function**
+
+```js
+const js360 = new JS360({
+  target:  document.querySelectorAll('.js360'),
+  onPlayStart: () => console.log('autoPlay is started')
+});
+
+js360.render();
+```
+
+Активация автопросмотра вызовет функцию `onPlayStart`.
+
+* ## onPlay
+type: **function**
+
+```js
+const js360 = new JS360({
+  target:  document.querySelectorAll('.js360'),
+  onPlay: () => console.log('autoPlay is happening now')
+});
+
+js360.render();
+```
+
+Каждая атоматическая смена изображения в канвасе активирует функцию `onPlay`.
+
+* ## onPlayEnd
+type: **function**
+
+```js
+const js360 = new JS360({
+  target:  document.querySelectorAll('.js360'),
+  onPlayEnd: () => console.log('autoPlay is finished')
+});
+
+js360.render();
+```
+
+Остановка автопросмотра вызывает событие `onPlayEnd`.
 
 # Options
 
@@ -375,88 +574,3 @@ type: **integer**
 по-умолчанию: **container.clientWidth || 320**
 
 Если задан - определяет ширину контейнера, которая наследуется в канвас и изображение.
-
-# API
-
-* ## load([index])
-type: **([index]) => Promise.all**
-
-Ручная загрузка массива изображений. На вход метод получает массив индексов, определяющий для каких именно кансасов нужно выгрузить изображения. Если не передано ничего, изображения загружаются для всех кансасов объекта.
-Возвращает промис, который резолвится, когда все запрошенные массивы получены.
-
-```js
-const js360 = new JS360({
-  baseUrl: 'http://my_rest',
-  target:  document.querySelectorAll('.js360')
-});
-
-js360.render();
-js360.load().then(() => {
-    // some code ...
-    js360.play();
-});
-```
-
-* ## play([index])
-type: **[index]**
-
-Ручной запуск автопросмотра. Метод получает на вход массив индексов, определяющий для каких именно кансасов нужно запустить просмотр. Если не передано ничего, просмотр запускается для всех кансасов объекта.
-
-```js
-const js360 = new JS360({
-  baseUrl: 'http://my_rest',
-  target:  document.querySelectorAll('.js360')
-});
-
-js360.render();
-js360.load().then(() => {
-    // some code ...
-    js360.play();
-});
-```
-
-* ## stop([index])
-type: **[index]**
-
-Ручная остановка автопросмотра. Метод получает на вход массив индексов, определяющий для каких именно кансасов нужно остановить просмотр. Если не передано ничего, просмотр останавливается для всех кансасов объекта.
-
-```js
-const js360 = new JS360({
-  baseUrl: 'http://my_rest',
-  target:  document.querySelectorAll('.js360'),
-  autoPlay: true
-});
-
-js360.render();
-
-setTimeout(() => {
-    js360.stop([3]);
-}, 2000);
-```
-
-Через 2 секунды после инициализации, просмотр будет остановлен для канваса с индексом 3.
-
-* ## toggle([index])
-type: **[index]**
-
-Переключение режимов play / stop. Также получает на вход массив индексов, к которым нужно применить метод. Если ничего не передано - метод будет передан для всех канвасов данного объекта.
-
-```js
-const js360 = new JS360({
-  baseUrl: 'http://my_rest',
-  target:  document.querySelectorAll('.js360'),
-  autoPlay: true
-});
-
-js360.render();
-
-setTimeout(() => {
-    js360.toggle();
-
-    setTimeout(() => {
-        js360.toggle();
-    }, 2000);
-}, 2000);
-```
-
-Через 2 секунды после инициализации, просмотр будет остановлен для всех канвасов. И будет запущен новый таймер на 2 секунды, для возобновления автопросмотра.

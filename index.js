@@ -465,6 +465,7 @@ var _initialiseProps = function _initialiseProps() {
     this.move = function (event) {
         if (_this.isRotateOnMousemove) return;
 
+        if (typeof _this.props.onRotate === 'function') _this.props.onRotate();
         _this.meta.moving = true;
         _this.updateClientX(event);
         _this.updateImage();
@@ -474,11 +475,13 @@ var _initialiseProps = function _initialiseProps() {
         _this.move(event);
         _this.meta.moving = false;
         _this.updateDelta(event);
+        if (typeof _this.props.onRotateEnd === 'function') _this.props.onRotateEnd();
     };
 
     this.rotate = function (event) {
         if (!_this.images.length) return;
 
+        if (typeof _this.props.onRotateStart === 'function') _this.props.onRotateStart();
         _this.updateDelta(event);
         _this.meta.moving = true;
     };
@@ -486,6 +489,8 @@ var _initialiseProps = function _initialiseProps() {
     this.toggle = function () {
         _this.meta.paused = !_this.meta.paused;
         if (!_this.interval) _this.play();
+        if (!_this.meta.paused && typeof _this.props.onPlayStart === 'function') _this.props.onPlayStart();
+        if (_this.meta.paused && typeof _this.props.onPlayEnd === 'function') _this.props.onPlayEnd();
         _this.updatePlayButton();
     };
 
@@ -494,6 +499,7 @@ var _initialiseProps = function _initialiseProps() {
         clearInterval(_this.interval);
         _this.interval = null;
 
+        if (typeof _this.props.onPlayEnd === 'function') _this.props.onPlayEnd();
         _this.updatePlayButton();
     };
 
@@ -504,7 +510,8 @@ var _initialiseProps = function _initialiseProps() {
             preloader = _props5.preloader,
             retinaUrl = _props5.retinaUrl,
             url = _props5.url,
-            width = _props5.width;
+            width = _props5.width,
+            onLoad = _props5.onLoad;
 
 
         return new Promise(function (resolve) {
@@ -525,6 +532,7 @@ var _initialiseProps = function _initialiseProps() {
                     _this.showControls(['pause', 'play']);
                     _this.removeLoader();
 
+                    if (typeof onLoad === 'function') onLoad();
                     if (autoPlay) _this.play();
                     resolve();
                 });
@@ -539,9 +547,12 @@ var _initialiseProps = function _initialiseProps() {
         _this.updatePlayButton();
 
         clearInterval(_this.interval);
+        if (typeof _this.props.onPlayStart === 'function') _this.props.onPlayStart();
+
         _this.interval = setInterval(function () {
             if (_this.meta.moving || _this.meta.paused) return;
 
+            if (typeof _this.props.onPlay === 'function') _this.props.onPlay();
             _this.delta--;
             _this.updateImage();
         }, Math.floor(50 / _this.props.speed));

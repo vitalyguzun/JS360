@@ -99,6 +99,7 @@ export class JS360Canvas {
     move = (event) => {
         if (this.isRotateOnMousemove) return;
 
+        if (typeof this.props.onRotate === 'function') this.props.onRotate();
         this.meta.moving = true;
         this.updateClientX(event);
         this.updateImage();
@@ -108,11 +109,13 @@ export class JS360Canvas {
         this.move(event);
         this.meta.moving = false;
         this.updateDelta(event);
+        if (typeof this.props.onRotateEnd === 'function') this.props.onRotateEnd();
     }
 
     rotate = (event) => {
         if (!this.images.length) return;
 
+        if (typeof this.props.onRotateStart === 'function') this.props.onRotateStart();
         this.updateDelta(event);
         this.meta.moving = true;
     };
@@ -120,6 +123,8 @@ export class JS360Canvas {
     toggle = () => {
         this.meta.paused = !this.meta.paused;
         if (!this.interval) this.play();
+        if (!this.meta.paused && typeof this.props.onPlayStart === 'function') this.props.onPlayStart();
+        if (this.meta.paused && typeof this.props.onPlayEnd === 'function') this.props.onPlayEnd();
         this.updatePlayButton();
     }
 
@@ -128,11 +133,12 @@ export class JS360Canvas {
         clearInterval(this.interval);
         this.interval = null;
 
+        if (typeof this.props.onPlayEnd === 'function') this.props.onPlayEnd();
         this.updatePlayButton();
     }
 
     load = () => {
-        const { autoPlay, baseUrl, preloader, retinaUrl, url, width } = this.props;
+        const { autoPlay, baseUrl, preloader, retinaUrl, url, width, onLoad } = this.props;
 
         return new Promise((resolve) => {
             if (url && !this.meta.success && !this.meta.pending) {
@@ -150,6 +156,7 @@ export class JS360Canvas {
                     this.showControls(['pause', 'play']);
                     this.removeLoader();
 
+                    if (typeof onLoad === 'function') onLoad();
                     if (autoPlay) this.play();
                     resolve();
                 });
@@ -162,9 +169,12 @@ export class JS360Canvas {
         this.updatePlayButton();
 
         clearInterval(this.interval);
+        if (typeof this.props.onPlayStart === 'function') this.props.onPlayStart();
+
         this.interval = setInterval(() => {
             if (this.meta.moving || this.meta.paused) return;
 
+            if (typeof this.props.onPlay === 'function') this.props.onPlay();
             this.delta--;
             this.updateImage();
         }, Math.floor(50 / this.props.speed));
