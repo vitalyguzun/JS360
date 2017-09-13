@@ -92,8 +92,8 @@ export class JS360Canvas {
         loadEvents.forEach((event) => loadTarget.addEventListener(event, this.load));
         container.addEventListener('mousemove', this.move);
         container.addEventListener('touchmove', this.move);
-        container.addEventListener('mouseup', this.stop);
-        container.addEventListener('touchend', this.stop);
+        container.addEventListener('mouseup', this.moveEnd);
+        container.addEventListener('touchend', this.moveEnd);
     }
 
     move = (event) => {
@@ -104,7 +104,7 @@ export class JS360Canvas {
         this.updateImage();
     }
 
-    stop = (event) => {
+    moveEnd = (event) => {
         this.move(event);
         this.meta.moving = false;
         this.updateDelta(event);
@@ -117,40 +117,50 @@ export class JS360Canvas {
         this.meta.moving = true;
     };
 
-    togglePlay = () => {
+    toggle = () => {
         this.meta.paused = !this.meta.paused;
-
-        const state = this.meta.paused ? PLAY : PAUSE;
-        this.controls.play.innerHTML = new Controls(state).render();
+        if (!this.interval) this.play();
+        this.updatePlayButton();
     }
 
-    load = (event) => {
+    stop = () => {
+        this.meta.paused = true;
+        clearInterval(this.interval);
+        this.interval = null;
+
+        this.updatePlayButton();
+    }
+
+    load = () => {
         const { autoPlay, baseUrl, preloader, retinaUrl, url, width } = this.props;
 
-        if (url && !this.meta.success && !this.meta.pending) {
-            const path = [baseUrl, retinaUrl, url].filter(path => path).join('/');
-            this.meta.pending = true;
+        return new Promise((resolve) => {
+            if (url && !this.meta.success && !this.meta.pending) {
+                const path = [baseUrl, retinaUrl, url].filter(path => path).join('/');
+                this.meta.pending = true;
 
-            if (preloader) this.addLoader();
+                if (preloader) this.addLoader();
 
-            httpGet(path).then((images) => {
-                this.meta.success = true;
-                this.meta.pending = false;
+                httpGet(path).then((images) => {
+                    this.meta.success = true;
+                    this.meta.pending = false;
 
-                this.step = Math.floor((width / images.length) * 1000) / 1000;
-                this.images = images;
-                this.showControls(['pause', 'play']);
-                this.removeLoader();
+                    this.step = Math.floor((width / images.length) * 1000) / 1000;
+                    this.images = images;
+                    this.showControls(['pause', 'play']);
+                    this.removeLoader();
 
-                if (autoPlay) {
-                    this.meta.paused = false;
-                    this.startAutoPlay();
-                }
-            });
-        }
+                    if (autoPlay) this.play();
+                    resolve();
+                });
+            } else resolve();
+        });
     }
 
-    startAutoPlay = () => {
+    play = (forced = false) => {
+        this.meta.paused = forced;
+        this.updatePlayButton();
+
         clearInterval(this.interval);
         this.interval = setInterval(() => {
             if (this.meta.moving || this.meta.paused) return;
@@ -190,10 +200,7 @@ export class JS360Canvas {
                 this.controls[control].innerHTML = new Controls(button).render();
 
                 if (control === 'play') {
-                    this.controls[control].addEventListener('click', () => {
-                        this.togglePlay();
-                        if (!this.interval) this.startAutoPlay();
-                    });
+                    this.controls[control].addEventListener('click', this.toggle);
                 }
             }
         }
@@ -206,6 +213,11 @@ export class JS360Canvas {
 
             control.classList.add('visible');
         });
+    }
+
+    updatePlayButton = () => {
+        const state = this.meta.paused ? PLAY : PAUSE;
+        this.controls.play.innerHTML = new Controls(state).render();
     }
 
     updateClientX = ({ type, changedTouches, clientX }) => {

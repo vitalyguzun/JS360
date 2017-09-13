@@ -143,6 +143,16 @@ var isEmpty = exports.isEmpty = function isEmpty(obj) {
     return result;
 };
 
+var range = exports.range = function range(length) {
+    var result = [];
+
+    for (var i = 0; i < length; i++) {
+        result.push(i);
+    }
+
+    return result;
+};
+
 /***/ }),
 /* 1 */
 /***/ (function(module, exports, __webpack_require__) {
@@ -202,29 +212,54 @@ var _utils = __webpack_require__(0);
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var symbols = [];
-
 var JS360 = exports.JS360 = function () {
     function JS360(options) {
+        var _this = this;
+
         _classCallCheck(this, JS360);
 
+        this.load = function () {
+            var indexes = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : (0, _utils.range)(_this.canvases.length);
+            return Promise.all(indexes.map(function (index) {
+                return _this.canvases[index].load();
+            }));
+        };
+
+        this.play = function () {
+            var indexes = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : (0, _utils.range)(_this.canvases.length);
+            return indexes.forEach(function (index) {
+                return _this.canvases[index].play();
+            });
+        };
+
+        this.stop = function () {
+            var indexes = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : (0, _utils.range)(_this.canvases.length);
+            return indexes.forEach(function (index) {
+                return _this.canvases[index].stop();
+            });
+        };
+
+        this.toggle = function () {
+            var indexes = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : (0, _utils.range)(_this.canvases.length);
+            return indexes.forEach(function (index) {
+                return _this.canvases[index].toggle();
+            });
+        };
+
         this.props = _extends({}, options);
-        this.canvases = {};
+        this.canvases = [];
     }
 
     _createClass(JS360, [{
         key: 'render',
         value: function render() {
-            var _this = this;
+            var _this2 = this;
 
             var targets = (0, _utils.getTarget)(this.props.target);
 
             targets.forEach(function (elem) {
-                var symbol = Symbol();
-
-                symbols.push(symbol);
                 elem.classList.add('js360-container');
-                _this.canvases[symbol] = new _js360Canvas.JS360Canvas(_extends({ elem: elem }, _this.props));
+                _this2.canvases.push(new _js360Canvas.JS360Canvas(_extends({ elem: elem }, _this2.props)));
             });
         }
     }]);
@@ -423,8 +458,8 @@ var _initialiseProps = function _initialiseProps() {
         });
         container.addEventListener('mousemove', _this.move);
         container.addEventListener('touchmove', _this.move);
-        container.addEventListener('mouseup', _this.stop);
-        container.addEventListener('touchend', _this.stop);
+        container.addEventListener('mouseup', _this.moveEnd);
+        container.addEventListener('touchend', _this.moveEnd);
     };
 
     this.move = function (event) {
@@ -435,7 +470,7 @@ var _initialiseProps = function _initialiseProps() {
         _this.updateImage();
     };
 
-    this.stop = function (event) {
+    this.moveEnd = function (event) {
         _this.move(event);
         _this.meta.moving = false;
         _this.updateDelta(event);
@@ -448,14 +483,21 @@ var _initialiseProps = function _initialiseProps() {
         _this.meta.moving = true;
     };
 
-    this.togglePlay = function () {
+    this.toggle = function () {
         _this.meta.paused = !_this.meta.paused;
-
-        var state = _this.meta.paused ? _constants.PLAY : _constants.PAUSE;
-        _this.controls.play.innerHTML = new _js360Controls.Controls(state).render();
+        if (!_this.interval) _this.play();
+        _this.updatePlayButton();
     };
 
-    this.load = function (event) {
+    this.stop = function () {
+        _this.meta.paused = true;
+        clearInterval(_this.interval);
+        _this.interval = null;
+
+        _this.updatePlayButton();
+    };
+
+    this.load = function () {
         var _props5 = _this.props,
             autoPlay = _props5.autoPlay,
             baseUrl = _props5.baseUrl,
@@ -465,32 +507,37 @@ var _initialiseProps = function _initialiseProps() {
             width = _props5.width;
 
 
-        if (url && !_this.meta.success && !_this.meta.pending) {
-            var path = [baseUrl, retinaUrl, url].filter(function (path) {
-                return path;
-            }).join('/');
-            _this.meta.pending = true;
+        return new Promise(function (resolve) {
+            if (url && !_this.meta.success && !_this.meta.pending) {
+                var path = [baseUrl, retinaUrl, url].filter(function (path) {
+                    return path;
+                }).join('/');
+                _this.meta.pending = true;
 
-            if (preloader) _this.addLoader();
+                if (preloader) _this.addLoader();
 
-            (0, _utils.httpGet)(path).then(function (images) {
-                _this.meta.success = true;
-                _this.meta.pending = false;
+                (0, _utils.httpGet)(path).then(function (images) {
+                    _this.meta.success = true;
+                    _this.meta.pending = false;
 
-                _this.step = Math.floor(width / images.length * 1000) / 1000;
-                _this.images = images;
-                _this.showControls(['pause', 'play']);
-                _this.removeLoader();
+                    _this.step = Math.floor(width / images.length * 1000) / 1000;
+                    _this.images = images;
+                    _this.showControls(['pause', 'play']);
+                    _this.removeLoader();
 
-                if (autoPlay) {
-                    _this.meta.paused = false;
-                    _this.startAutoPlay();
-                }
-            });
-        }
+                    if (autoPlay) _this.play();
+                    resolve();
+                });
+            } else resolve();
+        });
     };
 
-    this.startAutoPlay = function () {
+    this.play = function () {
+        var forced = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+
+        _this.meta.paused = forced;
+        _this.updatePlayButton();
+
         clearInterval(_this.interval);
         _this.interval = setInterval(function () {
             if (_this.meta.moving || _this.meta.paused) return;
@@ -537,10 +584,7 @@ var _initialiseProps = function _initialiseProps() {
                 _this.controls[control].innerHTML = new _js360Controls.Controls(button).render();
 
                 if (control === 'play') {
-                    _this.controls[control].addEventListener('click', function () {
-                        _this.togglePlay();
-                        if (!_this.interval) _this.startAutoPlay();
-                    });
+                    _this.controls[control].addEventListener('click', _this.toggle);
                 }
             }
         }
@@ -553,6 +597,11 @@ var _initialiseProps = function _initialiseProps() {
 
             control.classList.add('visible');
         });
+    };
+
+    this.updatePlayButton = function () {
+        var state = _this.meta.paused ? _constants.PLAY : _constants.PAUSE;
+        _this.controls.play.innerHTML = new _js360Controls.Controls(state).render();
     };
 
     this.updateClientX = function (_ref2) {

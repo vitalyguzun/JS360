@@ -42,3 +42,13 @@ export const isEmpty = (obj) => {
 
     return result;
 }
+
+export const range = (length) => {
+    const result = [];
+
+    for (let i = 0; i < length; i++) {
+        result.push(i);
+    }
+
+    return result;
+}

@@ -1,23 +1,23 @@
 import { JS360Canvas } from './js360Canvas';
-import { getTarget } from './utils';
-
-const symbols = [];
+import { getTarget, range } from './utils';
 
 export class JS360 {
     constructor(options) {
         this.props = { ...options };
-        this.canvases = {};
+        this.canvases = [];
     }
 
     render() {
         const targets = getTarget(this.props.target);
 
         targets.forEach((elem) => {
-            const symbol = Symbol();
-
-            symbols.push(symbol);
             elem.classList.add('js360-container');
-            this.canvases[symbol] = new JS360Canvas({ elem, ...this.props });
+            this.canvases.push(new JS360Canvas({ elem, ...this.props }));
         });
     }
+
+    load = (indexes = range(this.canvases.length)) => Promise.all(indexes.map((index) => this.canvases[index].load()));
+    play = (indexes = range(this.canvases.length)) => indexes.forEach((index) => this.canvases[index].play());
+    stop = (indexes = range(this.canvases.length)) => indexes.forEach((index) => this.canvases[index].stop());
+    toggle = (indexes = range(this.canvases.length)) => indexes.forEach((index) => this.canvases[index].toggle());
 }
