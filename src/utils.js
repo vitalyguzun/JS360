@@ -29,7 +29,7 @@ export const getTarget = (target) => {
         return [target];
     }
 
-    return undefined;
+    return [];
 }
 
 export const intersects = (first = [], second = []) => {

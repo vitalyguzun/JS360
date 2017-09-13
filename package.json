@@ -1,6 +1,6 @@
 {
   "name": "js360",
-  "version": "1.0.39",
+  "version": "1.0.40",
   "description": "360 preview canvas loader",
   "main": "index.js",
   "scripts": {

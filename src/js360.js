@@ -1,6 +1,8 @@
 import { JS360Canvas } from './js360Canvas';
 import { getTarget } from './utils';
 
+const symbols = [];
+
 export class JS360 {
     constructor(options) {
         this.props = { ...options };
@@ -11,11 +13,11 @@ export class JS360 {
         const targets = getTarget(this.props.target);
 
         targets.forEach((elem) => {
-            const { url, retinaPrefix } = elem.dataset;
-            const { target, ...rest } = this.props;
+            const symbol = Symbol();
 
+            symbols.push(symbol);
             elem.classList.add('js360-container');
-            this.canvases[url] = new JS360Canvas({ elem, retinaPrefix, ...rest });
+            this.canvases[symbol] = new JS360Canvas({ elem, ...this.props });
         });
     }
 }

@@ -122,7 +122,7 @@ var getTarget = exports.getTarget = function getTarget(target) {
         return [target];
     }
 
-    return undefined;
+    return [];
 };
 
 var intersects = exports.intersects = function intersects() {
@@ -200,9 +200,9 @@ var _js360Canvas = __webpack_require__(4);
 
 var _utils = __webpack_require__(0);
 
-function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
-
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var symbols = [];
 
 var JS360 = exports.JS360 = function () {
     function JS360(options) {
@@ -220,16 +220,11 @@ var JS360 = exports.JS360 = function () {
             var targets = (0, _utils.getTarget)(this.props.target);
 
             targets.forEach(function (elem) {
-                var _elem$dataset = elem.dataset,
-                    url = _elem$dataset.url,
-                    retinaPrefix = _elem$dataset.retinaPrefix;
+                var symbol = Symbol();
 
-                var _props = _this.props,
-                    target = _props.target,
-                    rest = _objectWithoutProperties(_props, ['target']);
-
+                symbols.push(symbol);
                 elem.classList.add('js360-container');
-                _this.canvases[url] = new _js360Canvas.JS360Canvas(_extends({ elem: elem, retinaPrefix: retinaPrefix }, rest));
+                _this.canvases[symbol] = new _js360Canvas.JS360Canvas(_extends({ elem: elem }, _this.props));
             });
         }
     }]);
