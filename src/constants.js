@@ -1,3 +1,3 @@
 export const LOAD = 'LOAD';
-export const PAUSE = 'PAUSE';
+export const STOP = 'STOP';
 export const PLAY = 'PLAY';

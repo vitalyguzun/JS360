@@ -27,7 +27,7 @@
     * [isLoaded](#isloaded)
     * [isPending](#ispending)
     * [isMoving](#ismoving)
-    * [isStoped](#isstoped)
+    * [isStopped](#isstopped)
     * [isPlayed](#isplayed)
   * [Options](#options)
     * [autoPlay](#autoplay-data-auto-play)
@@ -310,7 +310,7 @@ js360.render();
 # Flags
 
 * ## isLoaded
-type: **function**
+type: **function => boolean**
 
 ```js
 const js360 = new JS360({ target:  document.querySelectorAll('.js360') });
@@ -338,7 +338,7 @@ js360.isPending();
 
 
 * ## isMoving
-type: **function**
+type: **function => boolean**
 
 ```js
 const js360 = new JS360({ target:  document.querySelectorAll('.js360') });
@@ -350,21 +350,21 @@ js360.isMoving();
 `false` - ручной разворот подели не происходит  
 `true` - происходит ручной поворот модели
 
-* ## isStoped
-type: **function**
+* ## isStopped
+type: **function => boolean**
 
 ```js
 const js360 = new JS360({ target:  document.querySelectorAll('.js360') });
 
 js360.render();
-js360.isStoped();
+js360.isStopped();
 ```
 
 `false` - автопросмотр включен  
 `true` - автопросмотр выключен
 
 * ## isPlayed
-type: **function**
+type: **function => boolean**
 
 ```js
 const js360 = new JS360({ target:  document.querySelectorAll('.js360') });

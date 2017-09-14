@@ -164,7 +164,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 var LOAD = exports.LOAD = 'LOAD';
-var PAUSE = exports.PAUSE = 'PAUSE';
+var STOP = exports.STOP = 'STOP';
 var PLAY = exports.PLAY = 'PLAY';
 
 /***/ }),
@@ -246,6 +246,31 @@ var JS360 = exports.JS360 = function () {
             });
         };
 
+        this.isLoaded = function () {
+            var index = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+            return _this.canvases[index].meta.loaded;
+        };
+
+        this.isPending = function () {
+            var index = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+            return _this.canvases[index].meta.pending;
+        };
+
+        this.isMoving = function () {
+            var index = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+            return _this.canvases[index].meta.moving;
+        };
+
+        this.isStopped = function () {
+            var index = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+            return _this.canvases[index].meta.stopped;
+        };
+
+        this.isPlayed = function () {
+            var index = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+            return !_this.canvases[index].meta.stopped;
+        };
+
         this.props = _extends({}, options);
         this.canvases = [];
     }
@@ -302,12 +327,209 @@ var CONTROL_TYPES = {
     play: _constants.PLAY
 };
 
+var _updateImage = Symbol();
+var _controls = Symbol();
+var _interval = Symbol();
+var _clientX = Symbol();
+var _images = Symbol();
+var _delta = Symbol();
+var _index = Symbol();
+var _step = Symbol();
+var _meta = Symbol();
+
+var getPreviewImg = function getPreviewImg(_ref) {
+    var canvas = _ref.canvas,
+        width = _ref.width,
+        height = _ref.height,
+        preview = _ref.preview;
+
+    var context2D = canvas.getContext('2d');
+    var img = document.createElement('img');
+
+    img.src = preview;
+    img.onload = function () {
+        return context2D.drawImage(img, 0, 0, width, height);
+    };
+};
+
+var isRotateOnMousemoveFn = function isRotateOnMousemoveFn(context) {
+    return function () {
+        var rotateEvents = context.props.rotateEvents;
+
+        var clickEvents = ['mousedown', 'touchstart'];
+
+        return !context[_meta].moving && (0, _utils.intersects)(rotateEvents, clickEvents);
+    };
+};
+
+var move = function move(context) {
+    var props = context.props;
+
+    var isRotateOnMousemove = isRotateOnMousemoveFn(context);
+
+    return function (event) {
+        if (isRotateOnMousemove()) return;
+
+        if (typeof props.onRotate === 'function') props.onRotate();
+        context[_meta].moving = true;
+        updateClientX(context)(event);
+        context[_updateImage]();
+    };
+};
+
+var moveEnd = function moveEnd(context) {
+    var props = context.props;
+
+    var moveInstance = move(context);
+
+    return function (event) {
+        moveInstance(event);
+        context[_meta].moving = false;
+        updateDelta(context)(event);
+        if (typeof props.onRotateEnd === 'function') props.onRotateEnd();
+    };
+};
+
+var rotate = function rotate(context) {
+    var props = context.props;
+
+
+    return function (event) {
+        if (!context[_images].length) return;
+
+        if (typeof props.onRotateStart === 'function') props.onRotateStart();
+        updateDelta(context)(event);
+        context[_meta].moving = true;
+    };
+};
+
+var addListeners = function addListeners(context) {
+    var _context$props = context.props,
+        container = _context$props.container,
+        loadEvents = _context$props.loadEvents,
+        load = context.load;
+
+    var loadTarget = context[_controls].load || container;
+
+    loadEvents.forEach(function (event) {
+        return loadTarget.addEventListener(event, load);
+    });
+    container.addEventListener('mousemove', move(context));
+    container.addEventListener('touchmove', move(context));
+    container.addEventListener('mouseup', moveEnd(context));
+    container.addEventListener('touchend', moveEnd(context));
+};
+
+var addLoader = function addLoader(_ref2) {
+    var container = _ref2.container;
+
+    var loader = document.createElement('div');
+
+    loader.classList.add('loader');
+    container.classList.add('is-pending');
+    container.append(loader);
+};
+
+var removeLoader = function removeLoader(_ref3) {
+    var container = _ref3.container,
+        preloader = _ref3.preloader;
+
+    if (!preloader) return;
+
+    container.classList.remove('is-pending');
+    container.querySelector('.loader').remove();
+};
+
+var initControls = function initControls(context) {
+    var _context$props2 = context.props,
+        autoPlay = _context$props2.autoPlay,
+        controls = _context$props2.controls,
+        toggle = context.toggle;
+
+    if ((0, _utils.isEmpty)(controls)) return;
+
+    for (var control in controls) {
+        var button = control === 'play' && autoPlay ? _constants.STOP : CONTROL_TYPES[control];
+
+        if (button) {
+            context[_controls][control] = document.createElement('div');
+            context[_controls][control].classList.add('js360-' + control, 'js360-control');
+            context[_controls][control].innerHTML = new _js360Controls.Controls(button).render();
+
+            if (control === 'play') {
+                context[_controls][control].addEventListener('click', toggle);
+            }
+        }
+    }
+};
+
+var showControls = function showControls(props, types) {
+    types.forEach(function (type) {
+        var control = props.container.querySelector('.js360-' + type);
+        if (!control) return;
+
+        control.classList.add('visible');
+    });
+};
+
+var updatePlayButton = function updatePlayButton(context) {
+    var state = context[_meta].stopped ? _constants.PLAY : _constants.STOP;
+    context[_controls].play.innerHTML = new _js360Controls.Controls(state).render();
+};
+
+var updateClientX = function updateClientX(context) {
+    return function (_ref4) {
+        var type = _ref4.type,
+            changedTouches = _ref4.changedTouches,
+            clientX = _ref4.clientX;
+
+        var getX = (0, _utils.getXFn)(context.props.container);
+        context[_clientX] = type === 'touchmove' ? getX(changedTouches[0].clientX) : getX(clientX);
+    };
+};
+
+var updateDelta = function updateDelta(context) {
+    return function (_ref5) {
+        var type = _ref5.type,
+            changedTouches = _ref5.changedTouches,
+            clientX = _ref5.clientX;
+
+        if (!['mousedown', 'touchstart'].includes(type)) return;
+
+        var getX = (0, _utils.getXFn)(context.props.container);
+        context[_delta] = getX(clientX || changedTouches[0].clientX) - context[_index]() * context[_step] / context.props.speed;
+    };
+};
+
+var getUpdateImageFn = function getUpdateImageFn(context) {
+    var _context$props3 = context.props,
+        container = _context$props3.container,
+        canvas = _context$props3.canvas;
+
+    var width = container.clientWidth || 320;
+    var height = container.clientHeight || 180;
+    var context2D = canvas.getContext('2d');
+
+    return function () {
+        var base64 = context[_images][context[_index]() > 0 ? context[_index]() : context[_images].length + context[_index]()];
+        if (!base64) return;
+
+        var img = document.createElement('img');
+        img.onload = function () {
+            return context2D.drawImage(img, 0, 0, width, height);
+        };
+        img.src = base64;
+    };
+};
+
 var JS360Canvas = exports.JS360Canvas = function () {
-    function JS360Canvas(_ref) {
-        var elem = _ref.elem,
-            speed = _ref.speed,
-            retinaUrl = _ref.retinaUrl,
-            propsRest = _objectWithoutProperties(_ref, ['elem', 'speed', 'retinaUrl']);
+    function JS360Canvas(_ref6) {
+        var _this = this;
+
+        var elem = _ref6.elem,
+            speed = _ref6.speed,
+            retinaUrl = _ref6.retinaUrl,
+            propsRest = _objectWithoutProperties(_ref6, ['elem', 'speed', 'retinaUrl']);
 
         _classCallCheck(this, JS360Canvas);
 
@@ -331,22 +553,34 @@ var JS360Canvas = exports.JS360Canvas = function () {
             width: elem.clientWidth || 320
         }, datasetRest, propsRest);
 
-        this.meta = {
-            success: false,
+        this[_updateImage] = getUpdateImageFn(this);
+        this[_interval] = null;
+        this[_clientX] = 0;
+        this[_delta] = null;
+        this[_step] = null;
+        this[_images] = [];
+        this[_controls] = {};
+        this[_meta] = {
+            loaded: false,
             pending: false,
             moving: false,
-            paused: true
+            stopped: true
         };
+        this[_index] = function () {
+            var index = Math.round((_this[_clientX] - _this[_delta]) / (_this[_step] / _this.props.speed));
 
-        this.interval = null;
-        this.clientX = 0;
-        this.delta = null;
-        this.step = null;
-        this.images = [];
-        this.controls = {};
+            if (index >= _this[_images].length) {
+                index = 0;
+                _this[_delta] = _this[_clientX];
+            }
 
-        this.updateImage = this.getUpdateImageFn(this.props);
-        this.getX = (0, _utils.getXFn)(this.props.container);
+            if (index <= -_this[_images].length) {
+                index += _this[_images].length;
+                _this[_delta] = _this[_clientX];
+            }
+
+            return Number.isNaN(index) ? 0 : index;
+        };
 
         this.init();
         this.render();
@@ -366,9 +600,9 @@ var JS360Canvas = exports.JS360Canvas = function () {
             canvas.setAttribute('height', height + 'px');
             container.style.position = 'relative';
 
-            this.getPreviewImg();
-            this.initControls();
-            this.addListeners();
+            getPreviewImg(this.props);
+            initControls(this);
+            addListeners(this);
         }
     }, {
         key: 'render',
@@ -383,40 +617,12 @@ var JS360Canvas = exports.JS360Canvas = function () {
             if ((0, _utils.isEmpty)(controls)) return;
 
             var controlsContainer = document.createElement('div');
-            for (var control in this.controls) {
-                controlsContainer.append(this.controls[control]);
+            for (var control in this[_controls]) {
+                controlsContainer.append(this[_controls][control]);
             }
 
             controlsContainer.classList.add('js360-controls');
             container.append(controlsContainer);
-        }
-    }, {
-        key: 'index',
-        get: function get() {
-            var speed = this.props.speed;
-
-            var index = Math.round((this.clientX - this.delta) / (this.step / speed));
-
-            if (index >= this.images.length) {
-                index = 0;
-                this.delta = this.clientX;
-            }
-
-            if (index <= -this.images.length) {
-                index += this.images.length;
-                this.delta = this.clientX;
-            }
-
-            return Number.isNaN(index) ? 0 : index;
-        }
-    }, {
-        key: 'isRotateOnMousemove',
-        get: function get() {
-            var rotateEvents = this.props.rotateEvents;
-
-            var clickEvents = ['mousedown', 'touchstart'];
-
-            return !this.meta.moving && (0, _utils.intersects)(rotateEvents, clickEvents);
         }
     }]);
 
@@ -424,116 +630,65 @@ var JS360Canvas = exports.JS360Canvas = function () {
 }();
 
 var _initialiseProps = function _initialiseProps() {
-    var _this = this;
-
-    this.getPreviewImg = function () {
-        var _props3 = _this.props,
-            canvas = _props3.canvas,
-            width = _props3.width,
-            height = _props3.height,
-            preview = _props3.preview;
-
-        var context = canvas.getContext('2d');
-        var img = document.createElement('img');
-
-        img.src = preview;
-        img.onload = function () {
-            return context.drawImage(img, 0, 0, width, height);
-        };
-    };
-
-    this.addListeners = function () {
-        var _props4 = _this.props,
-            container = _props4.container,
-            loadEvents = _props4.loadEvents,
-            rotateEvents = _props4.rotateEvents;
-
-        var loadTarget = _this.controls.load || container;
-
-        rotateEvents.forEach(function (event) {
-            return container.addEventListener(event, _this.rotate);
-        });
-        loadEvents.forEach(function (event) {
-            return loadTarget.addEventListener(event, _this.load);
-        });
-        container.addEventListener('mousemove', _this.move);
-        container.addEventListener('touchmove', _this.move);
-        container.addEventListener('mouseup', _this.moveEnd);
-        container.addEventListener('touchend', _this.moveEnd);
-    };
-
-    this.move = function (event) {
-        if (_this.isRotateOnMousemove) return;
-
-        if (typeof _this.props.onRotate === 'function') _this.props.onRotate();
-        _this.meta.moving = true;
-        _this.updateClientX(event);
-        _this.updateImage();
-    };
-
-    this.moveEnd = function (event) {
-        _this.move(event);
-        _this.meta.moving = false;
-        _this.updateDelta(event);
-        if (typeof _this.props.onRotateEnd === 'function') _this.props.onRotateEnd();
-    };
-
-    this.rotate = function (event) {
-        if (!_this.images.length) return;
-
-        if (typeof _this.props.onRotateStart === 'function') _this.props.onRotateStart();
-        _this.updateDelta(event);
-        _this.meta.moving = true;
-    };
+    var _this2 = this;
 
     this.toggle = function () {
-        _this.meta.paused = !_this.meta.paused;
-        if (!_this.interval) _this.play();
-        if (!_this.meta.paused && typeof _this.props.onPlayStart === 'function') _this.props.onPlayStart();
-        if (_this.meta.paused && typeof _this.props.onPlayEnd === 'function') _this.props.onPlayEnd();
-        _this.updatePlayButton();
+        _this2[_meta].stopped = !_this2[_meta].stopped;
+        if (!_this2[_interval]) _this2.play();
+        if (!_this2[_meta].stopped && typeof _this2.props.onPlayStart === 'function') _this2.props.onPlayStart();
+        if (_this2[_meta].stopped && typeof _this2.props.onPlayEnd === 'function') _this2.props.onPlayEnd();
+        updatePlayButton(_this2);
     };
 
     this.stop = function () {
-        _this.meta.paused = true;
-        clearInterval(_this.interval);
-        _this.interval = null;
+        _this2[_meta].stopped = true;
+        clearInterval(_this2[_interval]);
+        _this2[_interval] = null;
 
-        if (typeof _this.props.onPlayEnd === 'function') _this.props.onPlayEnd();
-        _this.updatePlayButton();
+        if (typeof _this2.props.onPlayEnd === 'function') _this2.props.onPlayEnd();
+        updatePlayButton(_this2);
     };
 
     this.load = function () {
-        var _props5 = _this.props,
-            autoPlay = _props5.autoPlay,
-            baseUrl = _props5.baseUrl,
-            preloader = _props5.preloader,
-            retinaUrl = _props5.retinaUrl,
-            url = _props5.url,
-            width = _props5.width,
-            onLoad = _props5.onLoad;
+        var _props3 = _this2.props,
+            autoPlay = _props3.autoPlay,
+            baseUrl = _props3.baseUrl,
+            preloader = _props3.preloader,
+            retinaUrl = _props3.retinaUrl,
+            url = _props3.url,
+            width = _props3.width,
+            onLoad = _props3.onLoad;
 
 
         return new Promise(function (resolve) {
-            if (url && !_this.meta.success && !_this.meta.pending) {
+            if (url && !_this2[_meta].loaded && !_this2[_meta].pending) {
                 var path = [baseUrl, retinaUrl, url].filter(function (path) {
                     return path;
                 }).join('/');
-                _this.meta.pending = true;
+                _this2[_meta].pending = true;
 
-                if (preloader) _this.addLoader();
+                if (preloader) addLoader(_this2.props);
 
                 (0, _utils.httpGet)(path).then(function (images) {
-                    _this.meta.success = true;
-                    _this.meta.pending = false;
+                    var _props4 = _this2.props,
+                        container = _props4.container,
+                        rotateEvents = _props4.rotateEvents;
 
-                    _this.step = Math.floor(width / images.length * 1000) / 1000;
-                    _this.images = images;
-                    _this.showControls(['pause', 'play']);
-                    _this.removeLoader();
 
+                    _this2[_meta].loaded = true;
+                    _this2[_meta].pending = false;
+
+                    _this2[_step] = Math.floor(width / images.length * 1000) / 1000;
+                    _this2[_images] = images;
+                    showControls(_this2.props, ['play']);
+                    removeLoader(_this2.props);
+
+                    // rotate возвращает функцию, которая меняет состояние входящего параметра meta. Надо вынести изменение состояния в класс
+                    rotateEvents.forEach(function (event) {
+                        return container.addEventListener(event, rotate(_this2));
+                    });
                     if (typeof onLoad === 'function') onLoad();
-                    if (autoPlay) _this.play();
+                    if (autoPlay) _this2.play();
                     resolve();
                 });
             } else resolve();
@@ -543,116 +698,19 @@ var _initialiseProps = function _initialiseProps() {
     this.play = function () {
         var forced = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
 
-        _this.meta.paused = forced;
-        _this.updatePlayButton();
+        _this2[_meta].stopped = forced;
+        if (_this2[_controls].play) updatePlayButton(_this2);
 
-        clearInterval(_this.interval);
-        if (typeof _this.props.onPlayStart === 'function') _this.props.onPlayStart();
+        clearInterval(_this2[_interval]);
+        if (typeof _this2.props.onPlayStart === 'function') _this2.props.onPlayStart();
 
-        _this.interval = setInterval(function () {
-            if (_this.meta.moving || _this.meta.paused) return;
+        _this2[_interval] = setInterval(function () {
+            if (_this2[_meta].moving || _this2[_meta].stopped) return;
 
-            if (typeof _this.props.onPlay === 'function') _this.props.onPlay();
-            _this.delta--;
-            _this.updateImage();
-        }, Math.floor(50 / _this.props.speed));
-    };
-
-    this.addLoader = function () {
-        var container = _this.props.container;
-
-        var loader = document.createElement('div');
-
-        loader.classList.add('loader');
-        container.classList.add('is-pending');
-        container.append(loader);
-    };
-
-    this.removeLoader = function () {
-        var _props6 = _this.props,
-            container = _props6.container,
-            preloader = _props6.preloader;
-
-        if (!preloader) return;
-
-        container.classList.remove('is-pending');
-        container.querySelector('.loader').remove();
-    };
-
-    this.initControls = function () {
-        var _props7 = _this.props,
-            autoPlay = _props7.autoPlay,
-            controls = _props7.controls;
-
-        if ((0, _utils.isEmpty)(controls)) return;
-
-        for (var control in controls) {
-            var button = control === 'play' && autoPlay ? _constants.PAUSE : CONTROL_TYPES[control];
-
-            if (button) {
-                _this.controls[control] = document.createElement('div');
-                _this.controls[control].classList.add('js360-' + control, 'js360-control');
-                _this.controls[control].innerHTML = new _js360Controls.Controls(button).render();
-
-                if (control === 'play') {
-                    _this.controls[control].addEventListener('click', _this.toggle);
-                }
-            }
-        }
-    };
-
-    this.showControls = function (types) {
-        types.forEach(function (type) {
-            var control = _this.props.container.querySelector('.js360-' + type);
-            if (!control) return;
-
-            control.classList.add('visible');
-        });
-    };
-
-    this.updatePlayButton = function () {
-        var state = _this.meta.paused ? _constants.PLAY : _constants.PAUSE;
-        _this.controls.play.innerHTML = new _js360Controls.Controls(state).render();
-    };
-
-    this.updateClientX = function (_ref2) {
-        var type = _ref2.type,
-            changedTouches = _ref2.changedTouches,
-            clientX = _ref2.clientX;
-
-        _this.clientX = type === 'touchmove' ? _this.getX(changedTouches[0].clientX) : _this.getX(clientX);
-    };
-
-    this.updateDelta = function (_ref3) {
-        var type = _ref3.type,
-            changedTouches = _ref3.changedTouches,
-            clientX = _ref3.clientX;
-
-        if (!['mousedown', 'touchstart'].includes(type)) return;
-
-        _this.delta = _this.getX(clientX || changedTouches[0].clientX) - _this.index * _this.step / _this.props.speed;
-    };
-
-    this.getUpdateImageFn = function (_ref4) {
-        var container = _ref4.container,
-            canvas = _ref4.canvas,
-            rotateEvents = _ref4.rotateEvents,
-            speed = _ref4.speed;
-
-        var width = container.clientWidth || 320;
-        var height = container.clientHeight || 180;
-        var context = canvas.getContext('2d');
-
-        return function () {
-            var base64 = _this.images[_this.index > 0 ? _this.index : _this.images.length + _this.index];
-            if (!base64) return;
-
-            var img = document.createElement('img');
-            img.onload = function () {
-                return context.drawImage(img, 0, 0, width, height);
-            };
-            img.src = base64;
-        };
+            if (typeof _this2.props.onPlay === 'function') _this2.props.onPlay();
+            _this2[_delta]--;
+            _this2[_updateImage]();
+        }, Math.floor(50 / _this2.props.speed));
     };
 };
 

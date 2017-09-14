@@ -16,8 +16,14 @@ export class JS360 {
         });
     }
 
-    load = (indexes = range(this.canvases.length)) => Promise.all(indexes.map((index) => this.canvases[index].load()));
-    play = (indexes = range(this.canvases.length)) => indexes.forEach((index) => this.canvases[index].play());
-    stop = (indexes = range(this.canvases.length)) => indexes.forEach((index) => this.canvases[index].stop());
+    load   = (indexes = range(this.canvases.length)) => Promise.all(indexes.map((index) => this.canvases[index].load()));
+    play   = (indexes = range(this.canvases.length)) => indexes.forEach((index) => this.canvases[index].play());
+    stop   = (indexes = range(this.canvases.length)) => indexes.forEach((index) => this.canvases[index].stop());
     toggle = (indexes = range(this.canvases.length)) => indexes.forEach((index) => this.canvases[index].toggle());
+
+    isLoaded  = (index = 0) => this.canvases[index].meta.loaded;
+    isPending = (index = 0) => this.canvases[index].meta.pending;
+    isMoving  = (index = 0) => this.canvases[index].meta.moving;
+    isStopped = (index = 0) => this.canvases[index].meta.stopped;
+    isPlayed  = (index = 0) => !this.canvases[index].meta.stopped;
 }
