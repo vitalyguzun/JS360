@@ -153,6 +153,27 @@ var range = exports.range = function range(length) {
     return result;
 };
 
+var LOAD_EVENTS = ['mousemove'];
+var ROTATE_EVENTS = ['mousedown'];
+
+var getLoadEvents = exports.getLoadEvents = function getLoadEvents() {
+    var dataEvents = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '[]';
+    var propsEvents = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
+
+    if (JSON.parse(dataEvents).length) return JSON.parse(dataEvents);
+    if (propsEvents.length) return propsEvents;
+    return LOAD_EVENTS;
+};
+
+var getRotateEvents = exports.getRotateEvents = function getRotateEvents() {
+    var dataEvents = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '[]';
+    var propsEvents = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
+
+    if (JSON.parse(dataEvents).length) return JSON.parse(dataEvents);
+    if (propsEvents.length) return propsEvents;
+    return ROTATE_EVENTS;
+};
+
 /***/ }),
 /* 1 */
 /***/ (function(module, exports, __webpack_require__) {
@@ -304,8 +325,6 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.JS360Canvas = undefined;
 
-var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _utils = __webpack_require__(0);
@@ -320,8 +339,6 @@ function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in ob
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var LOAD_EVENTS = ['mousemove'];
-var ROTATE_EVENTS = ['mousedown'];
 var CONTROL_TYPES = {
     load: _constants.LOAD,
     play: _constants.PLAY
@@ -527,31 +544,109 @@ var JS360Canvas = exports.JS360Canvas = function () {
         var _this = this;
 
         var elem = _ref6.elem,
-            speed = _ref6.speed,
-            retinaUrl = _ref6.retinaUrl,
-            propsRest = _objectWithoutProperties(_ref6, ['elem', 'speed', 'retinaUrl']);
+            dataset = _ref6.elem.dataset,
+            props = _objectWithoutProperties(_ref6, ['elem', 'elem']);
 
         _classCallCheck(this, JS360Canvas);
 
-        _initialiseProps.call(this);
+        this.toggle = function () {
+            _this[_meta].stopped = !_this[_meta].stopped;
+            if (!_this[_interval]) _this.play();
+            if (!_this[_meta].stopped && typeof _this.props.onPlayStart === 'function') _this.props.onPlayStart();
+            if (_this[_meta].stopped && typeof _this.props.onPlayEnd === 'function') _this.props.onPlayEnd();
+            updatePlayButton(_this);
+        };
 
-        var _elem$dataset = elem.dataset,
-            _elem$dataset$loadEve = _elem$dataset.loadEvents,
-            loadEvents = _elem$dataset$loadEve === undefined ? '[]' : _elem$dataset$loadEve,
-            _elem$dataset$rotateE = _elem$dataset.rotateEvents,
-            rotateEvents = _elem$dataset$rotateE === undefined ? '[]' : _elem$dataset$rotateE,
-            datasetRest = _objectWithoutProperties(_elem$dataset, ['loadEvents', 'rotateEvents']);
+        this.stop = function () {
+            _this[_meta].stopped = true;
+            clearInterval(_this[_interval]);
+            _this[_interval] = null;
 
-        this.props = _extends({
+            if (typeof _this.props.onPlayEnd === 'function') _this.props.onPlayEnd();
+            updatePlayButton(_this);
+        };
+
+        this.load = function () {
+            var _props = _this.props,
+                autoPlay = _props.autoPlay,
+                baseUrl = _props.baseUrl,
+                preloader = _props.preloader,
+                retinaUrl = _props.retinaUrl,
+                url = _props.url,
+                width = _props.width,
+                onLoad = _props.onLoad;
+
+
+            return new Promise(function (resolve) {
+                if (url && !_this[_meta].loaded && !_this[_meta].pending) {
+                    var path = [baseUrl, retinaUrl, url].filter(function (path) {
+                        return path;
+                    }).join('/');
+                    _this[_meta].pending = true;
+
+                    if (preloader) addLoader(_this.props);
+
+                    (0, _utils.httpGet)(path).then(function (images) {
+                        var _props2 = _this.props,
+                            container = _props2.container,
+                            rotateEvents = _props2.rotateEvents;
+
+
+                        _this[_meta].loaded = true;
+                        _this[_meta].pending = false;
+
+                        _this[_step] = Math.floor(width / images.length * 1000) / 1000;
+                        _this[_images] = images;
+                        showControls(_this.props, ['play']);
+                        removeLoader(_this.props);
+
+                        rotateEvents.forEach(function (event) {
+                            return container.addEventListener(event, rotate(_this));
+                        });
+                        if (typeof onLoad === 'function') onLoad();
+                        if (autoPlay == 'true') _this.play();
+                        resolve();
+                    });
+                } else resolve();
+            });
+        };
+
+        this.play = function () {
+            var forced = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+
+            _this[_meta].stopped = forced;
+            if (_this[_controls].play) updatePlayButton(_this);
+
+            clearInterval(_this[_interval]);
+            if (typeof _this.props.onPlayStart === 'function') _this.props.onPlayStart();
+
+            _this[_interval] = setInterval(function () {
+                if (_this[_meta].moving || _this[_meta].stopped) return;
+
+                if (typeof _this.props.onPlay === 'function') _this.props.onPlay();
+                _this[_delta]--;
+                _this[_updateImage]();
+            }, Math.floor(50 / _this.props.speed));
+        };
+
+        this.props = {
             canvas: document.createElement('canvas'),
             container: elem,
-            height: elem.clientHeight || 180,
-            loadEvents: JSON.parse(loadEvents).length ? JSON.parse(loadEvents) : LOAD_EVENTS,
-            retinaUrl: window.devicePixelRatio === 2 ? retinaUrl || datasetRest.retinaUrl || '' : '',
-            rotateEvents: JSON.parse(rotateEvents).length ? JSON.parse(rotateEvents) : ROTATE_EVENTS,
-            speed: Math.floor((speed || datasetRest.speed || 1) * 100) / 100,
-            width: elem.clientWidth || 320
-        }, datasetRest, propsRest);
+
+            height: dataset.height || props.height || elem.clientHeight || 180,
+            width: dataset.width || props.width || elem.clientWidth || 320,
+
+            retinaUrl: window.devicePixelRatio === 2 ? dataset.retinaUrl || props.retinaUrl || '' : '',
+            speed: Math.floor((dataset.speed || props.speed || 1) * 100) / 100,
+            loadEvents: (0, _utils.getLoadEvents)(dataset.loadEvents, props.loadEvents),
+            rotateEvents: (0, _utils.getRotateEvents)(dataset.rotateEvents, props.rotateEvents),
+
+            autoPlay: dataset.autoPlay || props.autoPlay,
+            preloader: dataset.preloader || props.preloader,
+            baseUrl: dataset.baseUrl || props.baseUrl,
+            preview: dataset.preview || props.preview,
+            url: dataset.url || props.url
+        };
 
         this[_updateImage] = getUpdateImageFn(this);
         this[_interval] = null;
@@ -589,11 +684,11 @@ var JS360Canvas = exports.JS360Canvas = function () {
     _createClass(JS360Canvas, [{
         key: 'init',
         value: function init() {
-            var _props = this.props,
-                container = _props.container,
-                width = _props.width,
-                height = _props.height,
-                canvas = _props.canvas;
+            var _props3 = this.props,
+                container = _props3.container,
+                width = _props3.width,
+                height = _props3.height,
+                canvas = _props3.canvas;
 
 
             canvas.setAttribute('width', width + 'px');
@@ -607,10 +702,10 @@ var JS360Canvas = exports.JS360Canvas = function () {
     }, {
         key: 'render',
         value: function render() {
-            var _props2 = this.props,
-                container = _props2.container,
-                canvas = _props2.canvas,
-                controls = _props2.controls;
+            var _props4 = this.props,
+                container = _props4.container,
+                canvas = _props4.canvas,
+                controls = _props4.controls;
 
             container.append(canvas);
 
@@ -628,91 +723,6 @@ var JS360Canvas = exports.JS360Canvas = function () {
 
     return JS360Canvas;
 }();
-
-var _initialiseProps = function _initialiseProps() {
-    var _this2 = this;
-
-    this.toggle = function () {
-        _this2[_meta].stopped = !_this2[_meta].stopped;
-        if (!_this2[_interval]) _this2.play();
-        if (!_this2[_meta].stopped && typeof _this2.props.onPlayStart === 'function') _this2.props.onPlayStart();
-        if (_this2[_meta].stopped && typeof _this2.props.onPlayEnd === 'function') _this2.props.onPlayEnd();
-        updatePlayButton(_this2);
-    };
-
-    this.stop = function () {
-        _this2[_meta].stopped = true;
-        clearInterval(_this2[_interval]);
-        _this2[_interval] = null;
-
-        if (typeof _this2.props.onPlayEnd === 'function') _this2.props.onPlayEnd();
-        updatePlayButton(_this2);
-    };
-
-    this.load = function () {
-        var _props3 = _this2.props,
-            autoPlay = _props3.autoPlay,
-            baseUrl = _props3.baseUrl,
-            preloader = _props3.preloader,
-            retinaUrl = _props3.retinaUrl,
-            url = _props3.url,
-            width = _props3.width,
-            onLoad = _props3.onLoad;
-
-
-        return new Promise(function (resolve) {
-            if (url && !_this2[_meta].loaded && !_this2[_meta].pending) {
-                var path = [baseUrl, retinaUrl, url].filter(function (path) {
-                    return path;
-                }).join('/');
-                _this2[_meta].pending = true;
-
-                if (preloader) addLoader(_this2.props);
-
-                (0, _utils.httpGet)(path).then(function (images) {
-                    var _props4 = _this2.props,
-                        container = _props4.container,
-                        rotateEvents = _props4.rotateEvents;
-
-
-                    _this2[_meta].loaded = true;
-                    _this2[_meta].pending = false;
-
-                    _this2[_step] = Math.floor(width / images.length * 1000) / 1000;
-                    _this2[_images] = images;
-                    showControls(_this2.props, ['play']);
-                    removeLoader(_this2.props);
-
-                    // rotate возвращает функцию, которая меняет состояние входящего параметра meta. Надо вынести изменение состояния в класс
-                    rotateEvents.forEach(function (event) {
-                        return container.addEventListener(event, rotate(_this2));
-                    });
-                    if (typeof onLoad === 'function') onLoad();
-                    if (autoPlay) _this2.play();
-                    resolve();
-                });
-            } else resolve();
-        });
-    };
-
-    this.play = function () {
-        var forced = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
-
-        _this2[_meta].stopped = forced;
-        if (_this2[_controls].play) updatePlayButton(_this2);
-
-        clearInterval(_this2[_interval]);
-        if (typeof _this2.props.onPlayStart === 'function') _this2.props.onPlayStart();
-
-        _this2[_interval] = setInterval(function () {
-            if (_this2[_meta].moving || _this2[_meta].stopped) return;
-
-            if (typeof _this2.props.onPlay === 'function') _this2.props.onPlay();
-            _this2[_delta]--;
-            _this2[_updateImage]();
-        }, Math.floor(50 / _this2.props.speed));
-    };
-};
 
 /***/ }),
 /* 5 */
@@ -748,7 +758,7 @@ var Controls = exports.Controls = function () {
             switch (type) {
                 case _constants.LOAD:
                     return '\n                    <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"\n                    \t width="300px" height="300px" viewBox="45 45 420 420" enable-background="new 0 0 500 500" xml:space="preserve">\n                        <g>\n                        \t<g>\n                        \t\t<path fill="#010101" d="M195.6,260.1c1.9,2.7,5.1,4.6,8.6,4.6c4.4,0,8.7-3.4,8.7-8.4c0-4.8-4-8.5-9.1-8.5c-1.9,0-3.8,0.5-5.6,1.3\n                        \t\t\tv-5.3l8.7-10.3h-15.5v-8h28.2v5.3l-8.4,10.3c6.4,2.5,10.7,8,10.7,15c0,9.8-7.7,16.4-17.3,16.4c-5.8,0-11.3-2.6-15.4-7.2\n                        \t\t\tL195.6,260.1z"/>\n                        \t\t<path fill="#010101" d="M253.9,225.6l-8.7,14.8h0.6c8.8,0,16.2,6.7,16.2,16c0,9-7.5,16.3-16.5,16.3c-8.7,0-17-6.2-17-15.8\n                        \t\t\tc0-4.6,2.1-8.7,4.6-12.8l10.9-18.4H253.9z M237.1,256.8c0,4.4,3.7,7.9,8.2,7.9c4.6,0,7.8-3.6,7.8-8.1c0-4.4-3.3-8.3-8.3-8.3\n                        \t\t\tc-1.7,0-3.2,0.3-5,1.1C238.7,251.2,237.1,253.7,237.1,256.8z"/>\n                        \t\t<path fill="#010101" d="M284.6,225c11.9,0,16.2,10.7,16.2,23.9c0,13.2-4.4,23.9-16.2,23.9c-11.9,0-16.2-10.7-16.2-23.9\n                        \t\t\tC268.3,235.6,272.7,225,284.6,225z M284.6,232.9c-5.4,0-7.3,7.2-7.3,15.9c0,8.7,1.9,15.9,7.3,15.9c5.4,0,7.3-7.2,7.3-15.9\n                        \t\t\tC291.8,240.1,289.9,232.9,284.6,232.9z"/>\n                        \t\t<path fill="#010101" d="M316.4,221.6c4,0,7.3,3.2,7.3,7.3c0,4-3.2,7.3-7.3,7.3c-4,0-7.3-3.2-7.3-7.3\n                        \t\t\tC309.1,224.9,312.3,221.6,316.4,221.6z M316.4,230.9c1.1,0,2-0.9,2-2c0-1.1-0.9-2-2-2c-1.1,0-2,0.9-2,2\n                        \t\t\tC314.4,230.1,315.3,230.9,316.4,230.9z"/>\n                        \t</g>\n                        \t<g>\n                        \t\t<path fill="#010101" d="M250.5,376.5c-70,0-127-57-127-127s57-127,127-127c28.8,0,56,9.4,78.6,27.2l-7.7,9.8\n                        \t\t\tc-20.4-16-44.9-24.5-70.8-24.5C187.3,135,136,186.3,136,249.5S187.3,364,250.5,364c63.2,0,114.5-51.4,114.5-114.5\n                        \t\t\tc0-26.7-9.4-52.7-26.5-73.3l9.6-8c18.9,22.7,29.4,51.6,29.4,81.2C377.5,319.5,320.5,376.5,250.5,376.5z"/>\n                        \t\t<polygon fill="#010101" points="331.8,160.1 335.8,198.8 369.7,172.6 \t\t"/>\n                        \t</g>\n                        </g>\n                    </svg>\n                ';
-                case _constants.PAUSE:
+                case _constants.STOP:
                     return '\n                    <svg fill="#000000" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">\n                        <path d="M6 19h2V5H6v14zm7-14v14h2V5h-4z"/>\n                        <path d="M0 0h24v24H0z" fill="none"/>\n                    </svg>\n                ';
                 case _constants.PLAY:
                     return '\n                    <svg fill="#9E9E9E" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">\n                        <path d="M8 5v14l11-7z"/>\n                        <path d="M0 0h24v24H0z" fill="none"/>\n                    </svg>\n                ';

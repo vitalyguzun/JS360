@@ -1,6 +1,7 @@
 # JS360
 
-### Demo (скоро будет много примеров)
+>Note. English version of docs is coming soon...
+### [See Demo](http://greenmars-components.surge.sh)
 
 Компонент, имитирующий работу 3D модели с помощью массива закодированных в base64 изображений на входе и канваса на выходе.
 

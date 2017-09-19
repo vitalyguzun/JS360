@@ -52,3 +52,18 @@ export const range = (length) => {
 
     return result;
 }
+
+const LOAD_EVENTS = ['mousemove'];
+const ROTATE_EVENTS = ['mousedown'];
+
+export const getLoadEvents = (dataEvents = '[]', propsEvents = []) => {
+    if (JSON.parse(dataEvents).length) return JSON.parse(dataEvents);
+    if (propsEvents.length) return propsEvents;
+    return LOAD_EVENTS;
+};
+
+export const getRotateEvents = (dataEvents = '[]', propsEvents = []) => {
+    if (JSON.parse(dataEvents).length) return JSON.parse(dataEvents);
+    if (propsEvents.length) return propsEvents;
+    return ROTATE_EVENTS;
+};

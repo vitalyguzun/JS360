@@ -1,10 +1,8 @@
-import { getXFn, httpGet, intersects, isEmpty } from './utils';
+import { getXFn, httpGet, intersects, isEmpty, getLoadEvents, getRotateEvents } from './utils';
 import { Controls } from './js360Controls';
 import { LOAD, PLAY, STOP } from './constants';
 import './js360.scss';
 
-const LOAD_EVENTS = ['mousemove'];
-const ROTATE_EVENTS = ['mousedown'];
 const CONTROL_TYPES = {
     load: LOAD,
     play: PLAY
@@ -161,20 +159,25 @@ const getUpdateImageFn = (context) => {
 };
 
 export class JS360Canvas {
-    constructor({ elem, speed, retinaUrl, ...propsRest }) {
-        const { loadEvents = '[]', rotateEvents = '[]', ...datasetRest } = elem.dataset;
+    constructor({ elem, elem: { dataset }, ...props }) {
 
         this.props = {
-            canvas: document.createElement('canvas'),
-            container: elem,
-            height: elem.clientHeight || 180,
-            loadEvents: JSON.parse(loadEvents).length ? JSON.parse(loadEvents) : LOAD_EVENTS,
-            retinaUrl: window.devicePixelRatio === 2 ? (retinaUrl || datasetRest.retinaUrl || '') : '',
-            rotateEvents: JSON.parse(rotateEvents).length ? JSON.parse(rotateEvents) : ROTATE_EVENTS,
-            speed: (Math.floor((speed || datasetRest.speed || 1) * 100) / 100),
-            width: elem.clientWidth || 320,
-            ...datasetRest,
-            ...propsRest
+            canvas:       document.createElement('canvas'),
+            container:    elem,
+
+            height:       dataset.height || props.height || elem.clientHeight || 180,
+            width:        dataset.width || props.width || elem.clientWidth || 320,
+
+            retinaUrl:    window.devicePixelRatio === 2 ? (dataset.retinaUrl || props.retinaUrl || '') : '',
+            speed:        Math.floor((dataset.speed || props.speed || 1) * 100) / 100,
+            loadEvents:   getLoadEvents(dataset.loadEvents, props.loadEvents),
+            rotateEvents: getRotateEvents(dataset.rotateEvents, props.rotateEvents),
+
+            autoPlay:     dataset.autoPlay || props.autoPlay,
+            preloader:    dataset.preloader || props.preloader,
+            baseUrl:      dataset.baseUrl || props.baseUrl,
+            preview:      dataset.preview || props.preview,
+            url:          dataset.url || props.url
         };
 
         this[_updateImage] = getUpdateImageFn(this);
@@ -275,10 +278,9 @@ export class JS360Canvas {
                     showControls(this.props, ['play']);
                     removeLoader(this.props);
 
-                    // rotate возвращает функцию, которая меняет состояние входящего параметра meta. Надо вынести изменение состояния в класс
                     rotateEvents.forEach((event) => container.addEventListener(event, rotate(this)));
                     if (typeof onLoad === 'function') onLoad();
-                    if (autoPlay) this.play();
+                    if (autoPlay == 'true') this.play();
                     resolve();
                 });
             } else resolve();
