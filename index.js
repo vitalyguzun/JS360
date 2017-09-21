@@ -604,7 +604,7 @@ var JS360Canvas = exports.JS360Canvas = function () {
                             return container.addEventListener(event, rotate(_this));
                         });
                         if (typeof onLoad === 'function') onLoad();
-                        if (autoPlay == 'true') _this.play();
+                        if (autoPlay === 'true' || autoPlay === true) _this.play();
                         resolve();
                     });
                 } else resolve();

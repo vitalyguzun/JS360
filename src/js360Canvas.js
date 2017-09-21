@@ -280,7 +280,7 @@ export class JS360Canvas {
 
                     rotateEvents.forEach((event) => container.addEventListener(event, rotate(this)));
                     if (typeof onLoad === 'function') onLoad();
-                    if (autoPlay == 'true') this.play();
+                    if (autoPlay === 'true' || autoPlay === true) this.play();
                     resolve();
                 });
             } else resolve();
