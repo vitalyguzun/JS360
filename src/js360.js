@@ -21,9 +21,9 @@ export class JS360 {
     stop   = (indexes = range(this.canvases.length)) => indexes.forEach((index) => this.canvases[index].stop());
     toggle = (indexes = range(this.canvases.length)) => indexes.forEach((index) => this.canvases[index].toggle());
 
-    isLoaded  = (index = 0) => this.canvases[index].meta.loaded;
-    isPending = (index = 0) => this.canvases[index].meta.pending;
-    isMoving  = (index = 0) => this.canvases[index].meta.moving;
-    isStopped = (index = 0) => this.canvases[index].meta.stopped;
-    isPlayed  = (index = 0) => !this.canvases[index].meta.stopped;
+    isLoaded  = (index = 0) => this.canvases[index].isLoaded;
+    isPending = (index = 0) => this.canvases[index].isPending;
+    isMoving  = (index = 0) => this.canvases[index].isMoving;
+    isStopped = (index = 0) => this.canvases[index].isStopped;
+    isPlaying = (index = 0) => this.canvases[index].isPlaying;
 }

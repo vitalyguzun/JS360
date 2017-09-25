@@ -3,11 +3,6 @@ import { Controls } from './js360Controls';
 import { LOAD, PLAY, STOP } from './constants';
 import './js360.scss';
 
-const CONTROL_TYPES = {
-    load: LOAD,
-    play: PLAY
-}
-
 const _updateImage = Symbol();
 const _controls    = Symbol();
 const _interval    = Symbol();
@@ -28,7 +23,7 @@ const getPreviewImg = ({ canvas, width, height, preview }) => {
 
 const isRotateOnMousemoveFn = (context) => () => {
     const { rotateEvents } = context.props;
-    const clickEvents = ['mousedown', 'touchstart'];
+    const clickEvents = [ 'mousedown', 'touchstart' ];
 
     return !context[_meta].moving && intersects(rotateEvents, clickEvents);
 }
@@ -91,28 +86,27 @@ const addLoader = ({ container }) => {
 }
 
 const removeLoader = ({ container, preloader }) => {
-    if (!preloader) return;
+    if (preloader !== 'true' && preloader !== true) return;
 
     container.classList.remove('is-pending');
     container.querySelector('.loader').remove();
 }
 
+const CONTROL_TYPES = { LOAD, PLAY };
 const initControls = (context) => {
-    const { props: { autoPlay, controls }, toggle } = context;
-    if (isEmpty(controls)) return;
+    const { props: { controlLoad, controlPlay }, stop } = context;
 
-    for (let control in controls) {
-        const button = (control === 'play' && autoPlay) ? STOP: CONTROL_TYPES[control];
+    if (controlLoad) {
+        context[_controls].load = document.createElement('div');
+        context[_controls].load.classList.add('js360-load', 'js360-control');
+        context[_controls].load.innerHTML = new Controls(CONTROL_TYPES[LOAD]).render();
+    }
 
-        if (button) {
-            context[_controls][control] = document.createElement('div');
-            context[_controls][control].classList.add(`js360-${control}`, 'js360-control');
-            context[_controls][control].innerHTML = new Controls(button).render();
-
-            if (control === 'play') {
-                context[_controls][control].addEventListener('click', toggle);
-            }
-        }
+    if (controlPlay) {
+        context[_controls].play = document.createElement('div');
+        context[_controls].play.classList.add('js360-play', 'js360-control');
+        context[_controls].play.innerHTML = new Controls(CONTROL_TYPES[PLAY]).render();
+        context[_controls].play.addEventListener('click', stop);
     }
 }
 
@@ -126,6 +120,8 @@ const showControls = (props, types) => {
 }
 
 const updatePlayButton = (context) => {
+    if (!context[_controls].play) return;
+
     const state = context[_meta].stopped ? PLAY : STOP;
     context[_controls].play.innerHTML = new Controls(state).render();
 }
@@ -160,7 +156,6 @@ const getUpdateImageFn = (context) => {
 
 export class JS360Canvas {
     constructor({ elem, elem: { dataset }, ...props }) {
-
         this.props = {
             canvas:       document.createElement('canvas'),
             container:    elem,
@@ -177,7 +172,9 @@ export class JS360Canvas {
             preloader:    dataset.preloader || props.preloader,
             baseUrl:      dataset.baseUrl || props.baseUrl,
             preview:      dataset.preview || props.preview,
-            url:          dataset.url || props.url
+            url:          dataset.url || props.url,
+            controlLoad:  props.controlLoad || false,
+            controlPlay:  props.controlPlay || false
         };
 
         this[_updateImage] = getUpdateImageFn(this);
@@ -213,6 +210,12 @@ export class JS360Canvas {
         this.render();
     }
 
+    get isLoaded() { return this[_meta].loaded; };
+    get isPending() { return this[_meta].pending; };
+    get isMoving() { return this[_meta].moving; };
+    get isStopped() { return this[_meta].stopped; };
+    get isPlaying() { return !this[_meta].stopped; };
+
     init() {
         const { container, width, height, canvas } = this.props;
 
@@ -226,10 +229,11 @@ export class JS360Canvas {
     }
 
     render() {
-        const { container, canvas, controls } = this.props;
+        const { container, canvas } = this.props;
+        container.innerHTML = '';
         container.append(canvas);
 
-        if (isEmpty(controls)) return;
+        if (isEmpty(this[_controls])) return;
 
         const controlsContainer = document.createElement('div');
         for (let control in this[_controls]) {
@@ -240,15 +244,9 @@ export class JS360Canvas {
         container.append(controlsContainer);
     }
 
-    toggle = () => {
-        this[_meta].stopped = !this[_meta].stopped;
-        if (!this[_interval]) this.play();
-        if (!this[_meta].stopped && typeof this.props.onPlayStart === 'function') this.props.onPlayStart();
-        if (this[_meta].stopped && typeof this.props.onPlayEnd === 'function') this.props.onPlayEnd();
-        updatePlayButton(this);
-    }
-
     stop = () => {
+        if (this[_meta].stopped) return this.play();
+
         this[_meta].stopped = true;
         clearInterval(this[_interval]);
         this[_interval] = null;
@@ -265,9 +263,12 @@ export class JS360Canvas {
                 const path = [baseUrl, retinaUrl, url].filter(path => path).join('/');
                 this[_meta].pending = true;
 
-                if (preloader) addLoader(this.props);
+                if (preloader === 'true' || preloader === true) addLoader(this.props);
 
                 httpGet(path).then((images) => {
+                    removeLoader(this.props);
+                    if (!images.length) return;
+
                     const { container, rotateEvents } = this.props;
 
                     this[_meta].loaded = true;
@@ -276,7 +277,6 @@ export class JS360Canvas {
                     this[_step] = Math.floor((width / images.length) * 1000) / 1000;
                     this[_images] = images;
                     showControls(this.props, ['play']);
-                    removeLoader(this.props);
 
                     rotateEvents.forEach((event) => container.addEventListener(event, rotate(this)));
                     if (typeof onLoad === 'function') onLoad();
@@ -291,9 +291,10 @@ export class JS360Canvas {
         this[_meta].stopped = forced;
         if (this[_controls].play) updatePlayButton(this);
 
-        clearInterval(this[_interval]);
+        if (!this[_meta].stopped && typeof this.props.onPlayStart === 'function') this.props.onPlayStart();
         if (typeof this.props.onPlayStart === 'function') this.props.onPlayStart();
 
+        clearInterval(this[_interval]);
         this[_interval] = setInterval(() => {
             if (this[_meta].moving || this[_meta].stopped) return;
 

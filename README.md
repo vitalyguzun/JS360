@@ -33,8 +33,8 @@
   * [Options](#options)
     * [autoPlay](#autoplay-data-auto-play)
     * [baseUrl](#baseurl--data-base-url)
-    * [controls.load](#controls--load-)
-    * [controls.play](#controls--play-)
+    * [controlLoad](#controlload)
+    * [controlPlay](#controlplay)
     * [height](#height--data-height)
     * [loadEvents](#loadevents-data-load-events)
     * [preloader](#preloader-data-preloader)
@@ -126,7 +126,7 @@ js360.render();
 type: **([index]) => Promise.all**
 
 Ручная загрузка массива изображений. На вход метод получает массив индексов, определяющий для каких именно кансасов нужно выгрузить изображения. Если не передано ничего, изображения загружаются для всех кансасов объекта.
-Возвращает промис, который резолвится, когда все запрошенные массивы получены.
+Возвращает `Promise`, который резолвится, когда все запрошенные массивы получены.
 
 ```js
 const js360 = new JS360({
@@ -380,7 +380,7 @@ js360.isPlayed();
 # Options
 
 Настраивать компонент можно с помощью свойств объекта `options`, передаваемого в конструктор `new JS360(options)` или через `data` атрибуты в html шаблоне.
-Объект `options` при этом приоритетнее, и при одинаковых свойствах перезапишет данные переданные через `data` атрибуты.
+Данные, переданные через `data` атрибуты приоритетнее, и при одинаковых свойствах, они перезапишут свойства объекта `options` переданного в конструктора JS.
 
 * ## autoPlay	|| data-auto-play
 type: **boolean**  
@@ -420,9 +420,9 @@ js360.render();
 ```
 
 При одновременном указании `baseUrl && data-base-url` приоритет будет у `baseUrl`.  
-Массив закодированных изображений будет получен по адресу `http://my_second_rest/product.json`.
+Массив закодированных изображений будет получен по адресу `http://my_first_rest/product.json`.
 
-* ## controls: { load }
+* ## controlLoad
 type: **boolean**  
 обязательное: **нет**
 
@@ -434,18 +434,16 @@ type: **boolean**
 import 'js360/style.css';
 
 const js360 = new JS360({
-  baseUrl: 'http://my_rest',
-  target:  '.js360',
-  url:     'product.json',
-  controls: {
-    load: true
-  }
+  baseUrl:     'http://my_rest',
+  target:      '.js360',
+  url:         'product.json',
+  controlLoad: true
 });
 
 js360.render();
 ```
 
-* ## controls: { play }
+* ## controlPlay
 type: **boolean**  
 обязательное: **нет**
 
@@ -456,12 +454,10 @@ type: **boolean**
 import 'js360/style.css';
 
 const js360 = new JS360({
-  baseUrl: 'http://my_rest',
-  target:  '.js360',
-  url:     'product.json',
-  controls: {
-    play: true
-  }
+  baseUrl:     'http://my_rest',
+  target:      '.js360',
+  url:         'product.json',
+  controlPlay: true
 });
 
 js360.render();

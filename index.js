@@ -103,7 +103,13 @@ var httpGet = exports.httpGet = function httpGet(url) {
             var reader = new FileReader();
             reader.readAsText(xhr.response);
             reader.onloadend = function () {
-                return resolve(JSON.parse(reader.result));
+                try {
+                    resolve(JSON.parse(reader.result));
+                } catch (e) {
+                    console.error('HTTP.ERROR: Невозможно получить массив изображений. Проблема либо в пути к JSON объекту либо возвращаемый объект не является валидным JSON.');
+                    console.error(e);
+                    resolve([]);
+                }
             };
         };
 
@@ -154,8 +160,6 @@ var range = exports.range = function range(length) {
 };
 
 var LOAD_EVENTS = ['mousemove'];
-var ROTATE_EVENTS = ['mousedown'];
-
 var getLoadEvents = exports.getLoadEvents = function getLoadEvents() {
     var dataEvents = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '[]';
     var propsEvents = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
@@ -165,6 +169,7 @@ var getLoadEvents = exports.getLoadEvents = function getLoadEvents() {
     return LOAD_EVENTS;
 };
 
+var ROTATE_EVENTS = ['mousedown'];
 var getRotateEvents = exports.getRotateEvents = function getRotateEvents() {
     var dataEvents = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '[]';
     var propsEvents = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
@@ -269,27 +274,27 @@ var JS360 = exports.JS360 = function () {
 
         this.isLoaded = function () {
             var index = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-            return _this.canvases[index].meta.loaded;
+            return _this.canvases[index].isLoaded;
         };
 
         this.isPending = function () {
             var index = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-            return _this.canvases[index].meta.pending;
+            return _this.canvases[index].isPending;
         };
 
         this.isMoving = function () {
             var index = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-            return _this.canvases[index].meta.moving;
+            return _this.canvases[index].isMoving;
         };
 
         this.isStopped = function () {
             var index = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-            return _this.canvases[index].meta.stopped;
+            return _this.canvases[index].isStopped;
         };
 
-        this.isPlayed = function () {
+        this.isPlaying = function () {
             var index = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-            return !_this.canvases[index].meta.stopped;
+            return _this.canvases[index].isPlaying;
         };
 
         this.props = _extends({}, options);
@@ -338,11 +343,6 @@ __webpack_require__(6);
 function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var CONTROL_TYPES = {
-    load: _constants.LOAD,
-    play: _constants.PLAY
-};
 
 var _updateImage = Symbol();
 var _controls = Symbol();
@@ -451,32 +451,31 @@ var removeLoader = function removeLoader(_ref3) {
     var container = _ref3.container,
         preloader = _ref3.preloader;
 
-    if (!preloader) return;
+    if (preloader !== 'true' && preloader !== true) return;
 
     container.classList.remove('is-pending');
     container.querySelector('.loader').remove();
 };
 
+var CONTROL_TYPES = { LOAD: _constants.LOAD, PLAY: _constants.PLAY };
 var initControls = function initControls(context) {
     var _context$props2 = context.props,
-        autoPlay = _context$props2.autoPlay,
-        controls = _context$props2.controls,
-        toggle = context.toggle;
+        controlLoad = _context$props2.controlLoad,
+        controlPlay = _context$props2.controlPlay,
+        stop = context.stop;
 
-    if ((0, _utils.isEmpty)(controls)) return;
 
-    for (var control in controls) {
-        var button = control === 'play' && autoPlay ? _constants.STOP : CONTROL_TYPES[control];
+    if (controlLoad) {
+        context[_controls].load = document.createElement('div');
+        context[_controls].load.classList.add('js360-load', 'js360-control');
+        context[_controls].load.innerHTML = new _js360Controls.Controls(CONTROL_TYPES[_constants.LOAD]).render();
+    }
 
-        if (button) {
-            context[_controls][control] = document.createElement('div');
-            context[_controls][control].classList.add('js360-' + control, 'js360-control');
-            context[_controls][control].innerHTML = new _js360Controls.Controls(button).render();
-
-            if (control === 'play') {
-                context[_controls][control].addEventListener('click', toggle);
-            }
-        }
+    if (controlPlay) {
+        context[_controls].play = document.createElement('div');
+        context[_controls].play.classList.add('js360-play', 'js360-control');
+        context[_controls].play.innerHTML = new _js360Controls.Controls(CONTROL_TYPES[_constants.PLAY]).render();
+        context[_controls].play.addEventListener('click', stop);
     }
 };
 
@@ -490,6 +489,8 @@ var showControls = function showControls(props, types) {
 };
 
 var updatePlayButton = function updatePlayButton(context) {
+    if (!context[_controls].play) return;
+
     var state = context[_meta].stopped ? _constants.PLAY : _constants.STOP;
     context[_controls].play.innerHTML = new _js360Controls.Controls(state).render();
 };
@@ -549,15 +550,9 @@ var JS360Canvas = exports.JS360Canvas = function () {
 
         _classCallCheck(this, JS360Canvas);
 
-        this.toggle = function () {
-            _this[_meta].stopped = !_this[_meta].stopped;
-            if (!_this[_interval]) _this.play();
-            if (!_this[_meta].stopped && typeof _this.props.onPlayStart === 'function') _this.props.onPlayStart();
-            if (_this[_meta].stopped && typeof _this.props.onPlayEnd === 'function') _this.props.onPlayEnd();
-            updatePlayButton(_this);
-        };
-
         this.stop = function () {
+            if (_this[_meta].stopped) return _this.play();
+
             _this[_meta].stopped = true;
             clearInterval(_this[_interval]);
             _this[_interval] = null;
@@ -584,9 +579,12 @@ var JS360Canvas = exports.JS360Canvas = function () {
                     }).join('/');
                     _this[_meta].pending = true;
 
-                    if (preloader) addLoader(_this.props);
+                    if (preloader === 'true' || preloader === true) addLoader(_this.props);
 
                     (0, _utils.httpGet)(path).then(function (images) {
+                        removeLoader(_this.props);
+                        if (!images.length) return;
+
                         var _props2 = _this.props,
                             container = _props2.container,
                             rotateEvents = _props2.rotateEvents;
@@ -598,7 +596,6 @@ var JS360Canvas = exports.JS360Canvas = function () {
                         _this[_step] = Math.floor(width / images.length * 1000) / 1000;
                         _this[_images] = images;
                         showControls(_this.props, ['play']);
-                        removeLoader(_this.props);
 
                         rotateEvents.forEach(function (event) {
                             return container.addEventListener(event, rotate(_this));
@@ -617,9 +614,10 @@ var JS360Canvas = exports.JS360Canvas = function () {
             _this[_meta].stopped = forced;
             if (_this[_controls].play) updatePlayButton(_this);
 
-            clearInterval(_this[_interval]);
+            if (!_this[_meta].stopped && typeof _this.props.onPlayStart === 'function') _this.props.onPlayStart();
             if (typeof _this.props.onPlayStart === 'function') _this.props.onPlayStart();
 
+            clearInterval(_this[_interval]);
             _this[_interval] = setInterval(function () {
                 if (_this[_meta].moving || _this[_meta].stopped) return;
 
@@ -645,7 +643,9 @@ var JS360Canvas = exports.JS360Canvas = function () {
             preloader: dataset.preloader || props.preloader,
             baseUrl: dataset.baseUrl || props.baseUrl,
             preview: dataset.preview || props.preview,
-            url: dataset.url || props.url
+            url: dataset.url || props.url,
+            controlLoad: props.controlLoad || false,
+            controlPlay: props.controlPlay || false
         };
 
         this[_updateImage] = getUpdateImageFn(this);
@@ -704,12 +704,12 @@ var JS360Canvas = exports.JS360Canvas = function () {
         value: function render() {
             var _props4 = this.props,
                 container = _props4.container,
-                canvas = _props4.canvas,
-                controls = _props4.controls;
+                canvas = _props4.canvas;
 
+            container.innerHTML = '';
             container.append(canvas);
 
-            if ((0, _utils.isEmpty)(controls)) return;
+            if ((0, _utils.isEmpty)(this[_controls])) return;
 
             var controlsContainer = document.createElement('div');
             for (var control in this[_controls]) {
@@ -718,6 +718,31 @@ var JS360Canvas = exports.JS360Canvas = function () {
 
             controlsContainer.classList.add('js360-controls');
             container.append(controlsContainer);
+        }
+    }, {
+        key: 'isLoaded',
+        get: function get() {
+            return this[_meta].loaded;
+        }
+    }, {
+        key: 'isPending',
+        get: function get() {
+            return this[_meta].pending;
+        }
+    }, {
+        key: 'isMoving',
+        get: function get() {
+            return this[_meta].moving;
+        }
+    }, {
+        key: 'isStopped',
+        get: function get() {
+            return this[_meta].stopped;
+        }
+    }, {
+        key: 'isPlaying',
+        get: function get() {
+            return !this[_meta].stopped;
         }
     }]);
 

@@ -11,7 +11,15 @@ export const httpGet = (url) => {
         xhr.onload = () => {
             const reader = new FileReader();
             reader.readAsText(xhr.response);
-            reader.onloadend = () => resolve(JSON.parse(reader.result));
+            reader.onloadend = () => {
+                try {
+                    resolve(JSON.parse(reader.result));
+                } catch (e) {
+                    console.error('HTTP.ERROR: Невозможно получить массив изображений. Проблема либо в пути к JSON объекту либо возвращаемый объект не является валидным JSON.');
+                    console.error(e);
+                    resolve([]);
+                }
+            };
         };
 
         xhr.open('GET', url);
@@ -54,14 +62,13 @@ export const range = (length) => {
 }
 
 const LOAD_EVENTS = ['mousemove'];
-const ROTATE_EVENTS = ['mousedown'];
-
 export const getLoadEvents = (dataEvents = '[]', propsEvents = []) => {
     if (JSON.parse(dataEvents).length) return JSON.parse(dataEvents);
     if (propsEvents.length) return propsEvents;
     return LOAD_EVENTS;
 };
 
+const ROTATE_EVENTS = ['mousedown'];
 export const getRotateEvents = (dataEvents = '[]', propsEvents = []) => {
     if (JSON.parse(dataEvents).length) return JSON.parse(dataEvents);
     if (propsEvents.length) return propsEvents;
