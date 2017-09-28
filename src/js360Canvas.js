@@ -128,7 +128,7 @@ const updatePlayButton = (context) => {
 
 const updateClientX = (context) => ({ type, changedTouches, clientX }) => {
     const getX = getXFn(context.props.container);
-    context[_clientX] = (type === 'touchmove') ? getX(changedTouches[0].clientX) : getX(clientX);
+    context[_clientX] = ['touchmove', 'touchend'].includes(type) ? getX(changedTouches[0].clientX) : getX(clientX);
 }
 
 const updateDelta = (context) => ({ type, changedTouches, clientX }) => {

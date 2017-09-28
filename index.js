@@ -502,7 +502,7 @@ var updateClientX = function updateClientX(context) {
             clientX = _ref4.clientX;
 
         var getX = (0, _utils.getXFn)(context.props.container);
-        context[_clientX] = type === 'touchmove' ? getX(changedTouches[0].clientX) : getX(clientX);
+        context[_clientX] = ['touchmove', 'touchend'].includes(type) ? getX(changedTouches[0].clientX) : getX(clientX);
     };
 };
 
