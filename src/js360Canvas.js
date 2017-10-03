@@ -1,6 +1,7 @@
 import { getXFn, httpGet, intersects, isEmpty, getLoadEvents, getRotateEvents } from './utils';
 import { Controls } from './js360Controls';
 import { LOAD, PLAY, STOP } from './constants';
+import Symbol from 'es6-symbol';
 import './js360.scss';
 
 const _updateImage = Symbol();
@@ -12,6 +13,7 @@ const _delta       = Symbol();
 const _index       = Symbol();
 const _step        = Symbol();
 const _meta        = Symbol();
+
 
 const getPreviewImg = ({ canvas, width, height, preview }) => {
     const context2D = canvas.getContext('2d');

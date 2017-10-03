@@ -1,6 +1,6 @@
 {
   "name": "js360",
-  "version": "1.0.52",
+  "version": "1.0.53",
   "description": "360 preview canvas loader",
   "main": "index.js",
   "scripts": {
@@ -14,7 +14,9 @@
   ],
   "author": "vitalyguzun",
   "license": "ISC",
-  "dependencies": {},
+  "dependencies": {
+    "es6-symbol": "^3.1.1"
+  },
   "devDependencies": {
     "babel-core": "^6.26.0",
     "babel-eslint": "^7.2.3",
